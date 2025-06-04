@@ -64,7 +64,7 @@ const Dashboard = () => {
     <div className="animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">¡Buen{getGreeting()}, {user?.displayName || 'usuario'}!</h1>
+          <h1 className="text-2xl font-bold text-gray-800">¡{getGreeting()}, {user?.displayName || 'usuario'}!</h1>
           <p className="text-gray-600">Aquí está el resumen de tus finanzas de hoy.</p>
         </div>
         
@@ -242,9 +242,9 @@ const Dashboard = () => {
 const getGreeting = () => {
   const hour = new Date().getHours();
   
-  if (hour < 12) return ' día';
-  if (hour < 18) return 'as tardes';
-  return 'as noches';
+  if (hour < 12) return 'Buenos días';
+  if (hour < 18) return 'Buenas tardes';
+  return 'Buenas noches';
 };
 
 const formatDate = (dateString: string) => {
