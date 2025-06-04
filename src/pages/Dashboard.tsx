@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ArrowUpCircle, ArrowDownCircle, TrendingUp, CalendarDays, Plus } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, TrendingUp, CalendarDays, Plus, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTransactionStore } from '../stores/transactionStore';
 import ChartWrapper from '../components/ui/ChartWrapper';
@@ -18,6 +18,25 @@ const Dashboard = () => {
   
   const { income, expense, net } = getTodaysSummary();
   const weeklyData = getWeeklyData();
+
+  // Mock GPT financial recommendations based on user's data
+  const mockGptRecommendations = [
+    {
+      title: "Optimizar Gastos de Entretenimiento",
+      description: "Tus gastos en entretenimiento representan el 25% de tus gastos mensuales. Considera establecer un límite del 15% para mejorar tus ahorros.",
+      type: "warning"
+    },
+    {
+      title: "Oportunidad de Inversión",
+      description: "Con tu balance positivo actual, podrías considerar invertir el 20% de tus ingresos mensuales en un fondo de inversión de bajo riesgo.",
+      type: "success"
+    },
+    {
+      title: "Presupuesto de Alimentación",
+      description: "Tus gastos en alimentación están por debajo del promedio. ¡Buen trabajo! Mantén este patrón de consumo responsable.",
+      type: "info"
+    }
+  ];
   
   const chartData = {
     labels: weeklyData.labels,
@@ -96,6 +115,47 @@ const Dashboard = () => {
           </div>
         </Card>
       </div>
+
+      {/* Recomendaciones de IA */}
+      <Card className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="h-6 w-6 text-primary-600" />
+          <h2 className="text-xl font-bold text-gray-800">Recomendaciones Financieras</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {mockGptRecommendations.map((rec, index) => (
+            <div
+              key={index}
+              className={`p-4 rounded-lg border ${
+                rec.type === 'warning'
+                  ? 'bg-orange-50 border-orange-200'
+                  : rec.type === 'success'
+                  ? 'bg-green-50 border-green-200'
+                  : 'bg-blue-50 border-blue-200'
+              }`}
+            >
+              <h3 className={`font-semibold mb-2 ${
+                rec.type === 'warning'
+                  ? 'text-orange-700'
+                  : rec.type === 'success'
+                  ? 'text-green-700'
+                  : 'text-blue-700'
+              }`}>
+                {rec.title}
+              </h3>
+              <p className={`text-sm ${
+                rec.type === 'warning'
+                  ? 'text-orange-600'
+                  : rec.type === 'success'
+                  ? 'text-green-600'
+                  : 'text-blue-600'
+              }`}>
+                {rec.description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Card>
       
       {/* Sección de Gráficos */}
       <div className="mb-6">
