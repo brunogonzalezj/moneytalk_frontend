@@ -243,8 +243,8 @@ const getGreeting = () => {
   const hour = new Date().getHours();
   
   if (hour < 12) return 'día';
-  if (hour < 18) return 'tarde';
-  return 'noche';
+  if (hour < 18) return 'as tardes';
+  return 'as noches';
 };
 
 const formatDate = (dateString: string) => {
