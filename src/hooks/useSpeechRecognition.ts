@@ -77,6 +77,8 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     
     try {
       recognition.start();
+        setTranscript(''); // Clear previous transcript
+
     } catch (err) {
       // Sometimes start() can throw if already started
       console.error('Speech recognition start error:', err);

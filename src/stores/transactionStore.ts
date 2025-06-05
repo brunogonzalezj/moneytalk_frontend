@@ -21,7 +21,7 @@ interface TransactionState {
   totalPages: number;
   currentPage: number;
   outboxTransactions: Transaction[];
-  fetchTransactions: (page?: number, filters?: Record<string, any>) => Promise<void>;
+  fetchTransactions: (page?: number, filters?: Record<string, void>) => Promise<void>;
   addTransaction: (data: Omit<Transaction, 'id' | 'createdAt'>) => Promise<void>;
   updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
@@ -64,17 +64,6 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
 
   addTransaction: async (data) => {
     try {
-      // Optimistic update
-      const tempId = `temp-${Date.now()}`;
-      const newTransaction = {
-        ...data,
-        id: tempId,
-        createdAt: new Date().toISOString(),
-      };
-      
-      set(state => ({
-        transactions: [newTransaction, ...state.transactions],
-      }));
       
       // In a real app, this would add to your API
       const response = await apiClient.post('/transactions', data);
