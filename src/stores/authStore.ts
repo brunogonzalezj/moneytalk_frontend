@@ -42,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
           const { user, accessToken, refreshToken } = response.data;
           
           console.log('Login response:', response.data);
+          console.log('Access token received:', accessToken ? accessToken.substring(0, 50) + '...' : 'NO TOKEN');
           
           set({
             user: {
@@ -54,6 +55,16 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false,
           });
+          
+          // Verificar que se guardó correctamente
+          setTimeout(() => {
+            const stored = localStorage.getItem('auth-storage');
+            console.log('Token stored in localStorage:', stored ? 'YES' : 'NO');
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              console.log('Stored token preview:', parsed.state?.token ? parsed.state.token.substring(0, 50) + '...' : 'NO TOKEN IN STORAGE');
+            }
+          }, 100);
           
           toast.success('Sesión iniciada correctamente');
         } catch (error) {

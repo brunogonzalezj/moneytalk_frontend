@@ -14,13 +14,21 @@ const apiClient = axios.create({
 // Add request interceptor for debugging
 apiClient.interceptors.request.use(
   (config) => {
-    // Obtener token del authStore
+    console.log('=== API REQUEST DEBUG ===');
+    console.log('URL:', config.url);
+    console.log('Method:', config.method);
+    
+    // Obtener token del localStorage
     let token = null;
     try {
       const authStorage = localStorage.getItem('auth-storage');
+      console.log('Raw auth storage:', authStorage);
+      
       if (authStorage) {
         const authState = JSON.parse(authStorage);
+        console.log('Parsed auth state:', authState);
         token = authState.state?.token;
+        console.log('Extracted token:', token ? token.substring(0, 50) + '...' : 'NO TOKEN');
       }
     } catch (error) {
       console.error('Error reading auth token:', error);
@@ -28,22 +36,14 @@ apiClient.interceptors.request.use(
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('API Request with token:', {
-        url: config.url,
-        method: config.method,
-        hasToken: !!token,
-        tokenPreview: token.substring(0, 30) + '...',
-        authHeader: config.headers.Authorization?.substring(0, 20) + '...'
-      });
+      console.log('✅ Token added to request');
+      console.log('Authorization header:', config.headers.Authorization.substring(0, 50) + '...');
     } else {
-      console.log('API Request without token:', {
-        url: config.url,
-        method: config.method,
-        hasToken: false,
-        authStorage: !!localStorage.getItem('auth-storage')
-      });
+      console.log('❌ NO TOKEN FOUND');
+      console.log('Auth storage exists:', !!localStorage.getItem('auth-storage'));
     }
     
+    console.log('=== END DEBUG ===');
     return config;
   },
   (error) => {
