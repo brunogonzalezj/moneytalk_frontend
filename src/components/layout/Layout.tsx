@@ -29,7 +29,7 @@ const Layout = () => {
     <div className="flex h-screen bg-base-200 overflow-hidden">
       {/* Sidebar - Fixed position on mobile, static on desktop */}
       <div 
-        className={`fixed md:relative md:flex z-30 transition-transform duration-300 ease-in-out ${
+        className={`fixed md:relative md:flex z-40 transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
@@ -43,7 +43,7 @@ const Layout = () => {
         {/* Backdrop for mobile sidebar */}
         {isSidebarOpen && (
           <div 
-            className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-20"
+            className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30 backdrop-blur-sm"
             onClick={() => setSidebarOpen(false)}
           />
         )}

@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   ListOrdered, 
@@ -6,7 +6,7 @@ import {
   UserCircle, 
   LogOut, 
   Plus, 
-  ChevronLeft 
+  X 
 } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -14,107 +14,146 @@ import Logo from './Logo';
 
 const Sidebar = () => {
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
-  const { logout } = useAuthStore();
+  const { logout, user } = useAuthStore();
+  const location = useLocation();
+
+  const handleNavClick = () => {
+    // Close sidebar on mobile when navigating
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+    }
+  };
 
   return (
-    <div className="w-64 h-full bg-white shadow-lg">
-      <div className="flex items-center justify-between h-16 px-4 border-b">
+    <div className="w-64 h-full bg-white shadow-xl flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
         <Logo />
         <button 
           onClick={() => setSidebarOpen(false)}
-          className="md:hidden p-2 rounded-md hover:bg-base-200 transition-colors"
+          className="md:hidden p-2 rounded-full hover:bg-white/50 transition-all duration-200 text-primary-600"
           aria-label="Cerrar menú"
         >
-          <ChevronLeft size={20} />
+          <X size={20} />
         </button>
       </div>
 
-      <nav className="px-2 py-4">
-        <ul className="space-y-1">
+      {/* User Info - Mobile Only */}
+      <div className="md:hidden px-4 py-4 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center space-x-3">
+          <div className="avatar placeholder">
+            <div className="bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center">
+              <span className="text-sm font-medium">
+                {user?.displayName 
+                  ? user.displayName.substring(0, 2).toUpperCase() 
+                  : user?.email?.substring(0, 2).toUpperCase()}
+              </span>
+            </div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {user?.displayName || 'Usuario'}
+            </p>
+            <p className="text-xs text-gray-500 truncate">
+              {user?.email}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+        <ul className="space-y-2">
           <li>
             <NavLink 
               to="/dashboard" 
+              onClick={handleNavClick}
               className={({ isActive }) => 
-                `flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
+                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isActive 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'text-gray-700 hover:bg-base-200'
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600'
                 }`
               }
             >
-              <LayoutDashboard size={18} className="mr-3" />
+              <LayoutDashboard size={20} className="mr-3 transition-transform group-hover:scale-110" />
               Panel Principal
             </NavLink>
           </li>
           <li>
             <NavLink 
               to="/transactions" 
+              onClick={handleNavClick}
               className={({ isActive }) => 
-                `flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
+                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isActive 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'text-gray-700 hover:bg-base-200'
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600'
                 }`
               }
             >
-              <ListOrdered size={18} className="mr-3" />
+              <ListOrdered size={20} className="mr-3 transition-transform group-hover:scale-110" />
               Transacciones
             </NavLink>
           </li>
           <li>
             <NavLink 
               to="/transactions/new" 
+              onClick={handleNavClick}
               className={({ isActive }) => 
-                `flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
+                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isActive 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'text-gray-700 hover:bg-base-200'
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600'
                 }`
               }
             >
-              <Plus size={18} className="mr-3" />
+              <Plus size={20} className="mr-3 transition-transform group-hover:scale-110" />
               Nueva Transacción
             </NavLink>
           </li>
           <li>
             <NavLink 
               to="/reports" 
+              onClick={handleNavClick}
               className={({ isActive }) => 
-                `flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
+                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isActive 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'text-gray-700 hover:bg-base-200'
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600'
                 }`
               }
             >
-              <BarChart3 size={18} className="mr-3" />
+              <BarChart3 size={20} className="mr-3 transition-transform group-hover:scale-110" />
               Reportes
             </NavLink>
           </li>
           <li>
             <NavLink 
               to="/profile" 
+              onClick={handleNavClick}
               className={({ isActive }) => 
-                `flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors ${
+                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isActive 
-                    ? 'bg-primary-100 text-primary-700' 
-                    : 'text-gray-700 hover:bg-base-200'
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600'
                 }`
               }
             >
-              <UserCircle size={18} className="mr-3" />
+              <UserCircle size={20} className="mr-3 transition-transform group-hover:scale-110" />
               Perfil
             </NavLink>
           </li>
         </ul>
       </nav>
 
-      <div className="absolute bottom-0 w-full p-4 border-t">
+      {/* Logout Button */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
         <button 
           onClick={logout}
-          className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-700 rounded-md hover:bg-base-200 transition-colors"
+          className="flex items-center w-full px-4 py-3 text-sm font-medium text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-600 transition-all duration-200 group"
         >
-          <LogOut size={18} className="mr-3" />
+          <LogOut size={20} className="mr-3 transition-transform group-hover:scale-110" />
           Cerrar Sesión
         </button>
       </div>
