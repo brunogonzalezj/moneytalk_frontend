@@ -128,6 +128,26 @@ const Dashboard = () => {
               <h3 className="text-xl font-bold text-gray-800">{formatCurrency(expense)}</h3>
             </div>
             <div className="p-3 bg-accent-100 rounded-full">
+              <ArrowDownCircle className="h-6 w-6 text-accent-600" />
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-1">Balance Neto</p>
+              <h3 className={`text-xl font-bold ${net >= 0 ? 'text-primary-600' : 'text-accent-500'}`}>
+                {formatCurrency(net)}
+              </h3>
+            </div>
+            <div className={`p-3 rounded-full ${net >= 0 ? 'bg-primary-100' : 'bg-accent-100'}`}>
+              <TrendingUp className={`h-6 w-6 ${net >= 0 ? 'text-primary-600' : 'text-accent-600'}`} />
+            </div>
+          </div>
+        </Card>
+      </div>
+      
       {/* Sección de Gráficos */}
       <div className="mb-6">
         <ChartWrapper
@@ -206,82 +226,45 @@ const Dashboard = () => {
         </div>
       </div>
       
-      {/* Sección de Gráficos */}
+      {/* Recomendaciones de IA */}
       <div className="mb-6">
-        <ChartWrapper
-          type="line"
-          data={chartData}
-          title="Flujo de Efectivo - Últimos 7 Días"
-          subtitle="Ingresos vs Gastos"
-          height={300}
-        />
-      </div>
-      
-      {/* Transacciones Recientes */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-800">Transacciones Recientes</h2>
-          <Link to="/transactions" className="text-primary hover:underline text-sm font-medium">
-            Ver Todas
-          </Link>
+        <div className="flex items-center mb-4">
+          <Brain className="h-6 w-6 text-primary-600 mr-2" />
+          <h2 className="text-xl font-bold text-gray-800">Recomendaciones Inteligentes</h2>
         </div>
         
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          {transactions.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
-                  <tr>
-                    <th className="px-4 py-3">Fecha</th>
-                    <th className="px-4 py-3">Descripción</th>
-                    <th className="px-4 py-3">Categoría</th>
-                    <th className="px-4 py-3 text-right">Monto</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {transactions.slice(0, 5).map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="mr-3">
-                            <CalendarDays size={16} className="text-gray-400" />
-                          </div>
-                          {formatDate(transaction.date)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">{transaction.description}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          transaction.type === 'INCOME' 
-                            ? 'bg-primary-100 text-primary-800' 
-                            : 'bg-accent-100 text-accent-800'
-                        }`}>
-                          {transaction.category}
-                        </span>
-                      </td>
-                      <td className={`px-4 py-3 text-right whitespace-nowrap font-medium ${
-                        transaction.type === 'INCOME'
-                          ? 'text-primary-600' 
-                          : 'text-accent-500'
-                      }`}>
-                        {transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {isLoadingRecommendations ? (
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
             </div>
-          ) : (
-            <div className="px-4 py-8 text-center">
-              <p className="text-gray-500">No hay transacciones. ¡Comienza agregando una!</p>
-              <Link to="/transactions/new" className="mt-4 inline-block">
-                <Button variant="primary" size="sm" icon={<Plus size={16} />}>
-                  Agregar Transacción
-                </Button>
-              </Link>
-            </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(aiRecommendations.length > 0 ? aiRecommendations : mockGptRecommendations).map((recommendation) => (
+              <Card key={recommendation.id} className="hover:shadow-md transition-shadow">
+                <div className="flex items-start">
+                  <div className={`p-2 rounded-full mr-3 ${
+                    recommendation.type === 'warning' ? 'bg-yellow-100' :
+                    recommendation.type === 'success' ? 'bg-green-100' :
+                    'bg-blue-100'
+                  }`}>
+                    <Brain className={`h-4 w-4 ${
+                      recommendation.type === 'warning' ? 'text-yellow-600' :
+                      recommendation.type === 'success' ? 'text-green-600' :
+                      'text-blue-600'
+                    }`} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800 mb-1">{recommendation.title}</h3>
+                    <p className="text-sm text-gray-600">{recommendation.description}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
