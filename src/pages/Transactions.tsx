@@ -166,8 +166,8 @@ const Transactions = () => {
                 onChange={(e) => setSelectedType(e.target.value as TransactionType | 'all')}
               >
                 <option value="all">Todos los Tipos</option>
-                <option value="income">Ingresos</option>
-                <option value="expense">Gastos</option>
+                <option value="INCOME">Ingresos</option>
+                <option value="EXPENSE">Gastos</option>
               </select>
             </div>
             
@@ -239,7 +239,7 @@ const Transactions = () => {
                     <td className="px-4 py-3">{transaction.description}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        transaction.type === 'income' 
+                        transaction.type === 'INCOME' 
                           ? 'bg-primary-100 text-primary-800' 
                           : 'bg-accent-100 text-accent-800'
                       }`}>
@@ -247,11 +247,11 @@ const Transactions = () => {
                       </span>
                     </td>
                     <td className={`px-4 py-3 text-right whitespace-nowrap font-medium ${
-                      transaction.type === 'income' 
+                      transaction.type === 'INCOME' 
                         ? 'text-primary-600' 
                         : 'text-accent-500'
                     }`}>
-                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      {transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <div className="flex justify-end space-x-2">
