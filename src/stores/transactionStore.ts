@@ -67,9 +67,6 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
           limit: 10,
           ...filters,
         },
-        data: {
-          userId: parseInt(user.id)
-        }
       });
       
       console.log('Transactions response:', response.data);
