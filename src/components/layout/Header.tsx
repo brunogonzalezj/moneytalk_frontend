@@ -44,10 +44,12 @@ const Header = () => {
       }`}
     >
       <div className="flex items-center">
+        {/* Menu button - Only visible on desktop when sidebar is closed */}
         <button
           onClick={() => setSidebarOpen(true)}
-          className="md:hidden p-2 mr-2 rounded-md hover:bg-base-200 transition-colors"
+          className="hidden md:block p-2 mr-2 rounded-md hover:bg-base-200 transition-colors"
           aria-label="Abrir menú"
+          style={{ display: setSidebarOpen ? 'block' : 'none' }}
         >
           <Menu size={20} />
         </button>

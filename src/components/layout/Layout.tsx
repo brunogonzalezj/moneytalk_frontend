@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import BottomNavigation from './BottomNavigation';
 import { useUIStore } from '../../stores/uiStore';
 
 const Layout = () => {
@@ -27,33 +28,30 @@ const Layout = () => {
 
   return (
     <div className="flex h-screen bg-base-200 overflow-hidden">
-      {/* Sidebar - Fixed position on mobile, static on desktop */}
-      <div 
-        className={`fixed md:relative md:flex z-40 transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
-      >
-        <Sidebar />
+      {/* Sidebar - Only visible on desktop */}
+      <div className="hidden md:flex">
+        <div 
+          className={`transition-transform duration-300 ease-in-out ${
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <Sidebar />
+        </div>
       </div>
       
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         
-        {/* Backdrop for mobile sidebar */}
-        {isSidebarOpen && (
-          <div 
-            className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-30 backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6">
           <div className="container mx-auto">
             <Outlet />
           </div>
         </main>
+        
+        {/* Bottom Navigation - Only visible on mobile */}
+        <BottomNavigation />
       </div>
     </div>
   );

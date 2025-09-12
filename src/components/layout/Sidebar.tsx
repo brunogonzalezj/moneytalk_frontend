@@ -15,14 +15,6 @@ import Logo from './Logo';
 const Sidebar = () => {
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const { logout, user } = useAuthStore();
-  const location = useLocation();
-
-  const handleNavClick = () => {
-    // Close sidebar on mobile when navigating
-    if (window.innerWidth < 768) {
-      setSidebarOpen(false);
-    }
-  };
 
   return (
     <div className="w-64 h-full bg-white shadow-xl flex flex-col">
@@ -67,7 +59,6 @@ const Sidebar = () => {
           <li>
             <NavLink 
               to="/dashboard" 
-              onClick={handleNavClick}
               className={({ isActive }) => 
                 `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isActive 
@@ -83,7 +74,6 @@ const Sidebar = () => {
           <li>
             <NavLink 
               to="/transactions" 
-              onClick={handleNavClick}
               className={({ isActive }) => 
                 `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isActive 
@@ -99,7 +89,6 @@ const Sidebar = () => {
           <li>
             <NavLink 
               to="/transactions/new" 
-              onClick={handleNavClick}
               className={({ isActive }) => 
                 `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isActive 
@@ -115,7 +104,6 @@ const Sidebar = () => {
           <li>
             <NavLink 
               to="/reports" 
-              onClick={handleNavClick}
               className={({ isActive }) => 
                 `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isActive 
@@ -131,7 +119,6 @@ const Sidebar = () => {
           <li>
             <NavLink 
               to="/profile" 
-              onClick={handleNavClick}
               className={({ isActive }) => 
                 `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
                   isActive 
