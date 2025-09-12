@@ -14,9 +14,17 @@ const apiClient = axios.create({
 // Add request interceptor for debugging
 apiClient.interceptors.request.use(
   (config) => {
-    // Agregar token JWT si existe
-    const authState = JSON.parse(localStorage.getItem('auth-storage') || '{}');
-    const token = authState.state?.token;
+    // Obtener token del authStore
+    let token = null;
+    try {
+      const authStorage = localStorage.getItem('auth-storage');
+      if (authStorage) {
+        const authState = JSON.parse(authStorage);
+        token = authState.state?.token;
+      }
+    } catch (error) {
+      console.error('Error reading auth token:', error);
+    }
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -24,13 +32,14 @@ apiClient.interceptors.request.use(
         url: config.url,
         method: config.method,
         hasToken: !!token,
-        tokenPreview: token.substring(0, 20) + '...'
+        tokenPreview: token.substring(0, 30) + '...'
       });
     } else {
       console.log('API Request without token:', {
         url: config.url,
         method: config.method,
-        hasToken: false
+        hasToken: false,
+        authStorage: !!localStorage.getItem('auth-storage')
       });
     }
     

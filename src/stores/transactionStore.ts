@@ -44,6 +44,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       set({ isLoading: true });
       
       const user = useAuthStore.getState().user;
+      const token = useAuthStore.getState().token;
       
       if (!user) {
         console.log('No user found, skipping fetch');
@@ -51,7 +52,14 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         return;
       }
       
+      if (!token) {
+        console.log('No token found, user not authenticated');
+        set({ isLoading: false });
+        return;
+      }
+      
       console.log('Fetching transactions for user:', user.id);
+      console.log('Using token:', token.substring(0, 30) + '...');
       
       const response = await apiClient.get('/transactions', {
         params: {
