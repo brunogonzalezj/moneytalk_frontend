@@ -77,10 +77,15 @@ const ChartWrapper: React.FC<ChartWrapperProps> = ({
               label += ': ';
             }
             if (context.parsed.y !== null) {
-              label += new Intl.NumberFormat('en-US', {
+              // Use the formatCurrency utility function
+              const value = typeof context.parsed === 'number' ? context.parsed : 
+                           typeof context.parsed.y === 'number' ? context.parsed.y : 
+                           context.parsed;
+              label += new Intl.NumberFormat('es-BO', {
                 style: 'currency',
-                currency: 'USD'
-              }).format(context.parsed.y);
+                currency: 'BOB',
+                minimumFractionDigits: 2,
+              }).format(Number(value) || 0);
             }
             return label;
           }
@@ -97,9 +102,9 @@ const ChartWrapper: React.FC<ChartWrapperProps> = ({
         beginAtZero: true,
         ticks: {
           callback: function(value) {
-            return new Intl.NumberFormat('en-US', {
+            return new Intl.NumberFormat('es-BO', {
               style: 'currency',
-              currency: 'USD',
+              currency: 'BOB',
               minimumFractionDigits: 0,
               maximumFractionDigits: 0
             }).format(Number(value));

@@ -101,6 +101,22 @@ const Reports = () => {
     ],
   };
   
+  // Opciones específicas para el gráfico de pie
+  const pieChartOptions = {
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: function(context: any) {
+            const label = context.label || '';
+            const value = context.parsed || 0;
+            const formatted = formatCurrency(Number(value));
+            return `${label}: ${formatted}`;
+          }
+        }
+      }
+    }
+  };
+
   const getMonthlyData = () => {
     const monthlyData: Record<string, { income: number; expense: number }> = {};
     
@@ -357,6 +373,7 @@ const Reports = () => {
           title="Distribución de Gastos por Categoría"
           subtitle={formatDateRange()}
           height={350}
+          options={pieChartOptions}
         />
         
         <ChartWrapper
