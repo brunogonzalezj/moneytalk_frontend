@@ -321,6 +321,7 @@ const NewTransaction = () => {
                             <input
                                 type="date"
                                 className={`input input-bordered w-full ${errors.date ? 'input-error' : ''}`}
+                                max={DateTime.now().toISODate()}
                                 {...register('date', {required: 'La fecha es requerida'})}
                             />
                             {errors.date && (

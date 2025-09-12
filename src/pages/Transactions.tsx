@@ -195,6 +195,7 @@ const Transactions = () => {
                 <input
                   type="date"
                   className="input input-bordered"
+                  max={new Date().toISOString().split('T')[0]}
                   value={dateRange.from}
                   onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
                   placeholder="Desde"
@@ -202,6 +203,7 @@ const Transactions = () => {
                 <input
                   type="date"
                   className="input input-bordered"
+                  max={new Date().toISOString().split('T')[0]}
                   value={dateRange.to}
                   onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
                   placeholder="Hasta"

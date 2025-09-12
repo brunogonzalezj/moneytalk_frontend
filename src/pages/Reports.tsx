@@ -289,6 +289,7 @@ const Reports = () => {
               <input
                 type="date"
                 className="input input-bordered"
+                max={new Date().toISOString().split('T')[0]}
                 value={customRange.from}
                 onChange={(e) => setCustomRange({ ...customRange, from: e.target.value })}
               />
@@ -300,6 +301,7 @@ const Reports = () => {
               <input
                 type="date"
                 className="input input-bordered"
+                max={new Date().toISOString().split('T')[0]}
                 value={customRange.to}
                 onChange={(e) => setCustomRange({ ...customRange, to: e.target.value })}
               />
