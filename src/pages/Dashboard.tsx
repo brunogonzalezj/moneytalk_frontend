@@ -7,35 +7,63 @@ import Card from '../components/ui/Card';
 import formatCurrency from '../utils/formatCurrency';
 import Button from '../components/ui/Button';
 import { useAuthStore } from '../stores/authStore';
+import apiClient from '../utils/apiClient';
+import toast from 'react-hot-toast';
 
 const Dashboard = () => {
   const { fetchTransactions, transactions, getTodaysSummary, getWeeklyData } = useTransactionStore();
   const { user } = useAuthStore();
+  const [aiRecommendations, setAiRecommendations] = useState([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   
   useEffect(() => {
     // Solo hacer fetch si hay usuario autenticado
     if (user) {
       console.log('Dashboard: Fetching transactions for user:', user.id);
       fetchTransactions();
+      fetchAIRecommendations();
     }
   }, [fetchTransactions]);
+  
+  const fetchAIRecommendations = async () => {
+    if (!user) return;
+    
+    setIsLoadingRecommendations(true);
+    try {
+      const response = await apiClient.post('/ai/recommendations', {
+        userId: parseInt(user.id)
+      });
+      
+      setAiRecommendations(response.data.recommendations || []);
+    } catch (error) {
+      console.error('Error fetching AI recommendations:', error);
+      toast.error('No se pudieron cargar las recomendaciones');
+      // Usar recomendaciones por defecto
+      setAiRecommendations(mockGptRecommendations);
+    } finally {
+      setIsLoadingRecommendations(false);
+    }
+  };
   
   const { income, expense, net } = getTodaysSummary();
   const weeklyData = getWeeklyData();
 
-  // Mock GPT financial recommendations based on user's data
+  // Fallback recommendations si falla la API
   const mockGptRecommendations = [
     {
+      id: 1,
       title: "Optimizar Gastos de Entretenimiento",
       description: "Tus gastos en entretenimiento representan el 25% de tus gastos mensuales. Considera establecer un límite del 15% para mejorar tus ahorros.",
       type: "warning"
     },
     {
+      id: 2,
       title: "Oportunidad de Inversión",
       description: "Con tu balance positivo actual, podrías considerar invertir el 20% de tus ingresos mensuales en un fondo de inversión de bajo riesgo.",
       type: "success"
     },
     {
+      id: 3,
       title: "Presupuesto de Alimentación",
       description: "Tus gastos en alimentación están por debajo del promedio. ¡Buen trabajo! Mantén este patrón de consumo responsable.",
       type: "info"
@@ -125,9 +153,58 @@ const Dashboard = () => {
         <div className="flex items-center gap-2 mb-4">
           <Brain className="h-6 w-6 text-primary-600" />
           <h2 className="text-xl font-bold text-gray-800">Recomendaciones Financieras</h2>
+          {isLoadingRecommendations && (
+            <div className="loading loading-spinner loading-sm text-primary"></div>
+          )}
+          <button
+            onClick={fetchAIRecommendations}
+            className="ml-auto text-primary hover:text-primary-600 text-sm font-medium"
+            disabled={isLoadingRecommendations}
+          >
+            Actualizar
+          </button>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {mockGptRecommendations.map((rec, index) => (
+        
+        {isLoadingRecommendations ? (
+          <div className="flex justify-center py-8">
+            <div className="loading loading-spinner loading-lg text-primary"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {aiRecommendations.map((rec) => (
+              <div
+                key={rec.id}
+                className={`p-4 rounded-lg border ${
+                  rec.type === 'warning'
+                    ? 'bg-orange-50 border-orange-200'
+                    : rec.type === 'success'
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-blue-50 border-blue-200'
+                }`}
+              >
+                <h3 className={`font-semibold mb-2 ${
+                  rec.type === 'warning'
+                    ? 'text-orange-700'
+                    : rec.type === 'success'
+                    ? 'text-green-700'
+                    : 'text-blue-700'
+                }`}>
+                  {rec.title}
+                </h3>
+                <p className={`text-sm ${
+                  rec.type === 'warning'
+                    ? 'text-orange-600'
+                    : rec.type === 'success'
+                    ? 'text-green-600'
+                    : 'text-blue-600'
+                }`}>
+                  {rec.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
             <div
               key={index}
               className={`p-4 rounded-lg border ${
