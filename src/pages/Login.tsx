@@ -145,9 +145,7 @@ const Login = () => {
         </div>
         
         <div className="text-center mt-8 text-sm text-gray-500">
-          <p>Credenciales de demostración:</p>
-          <p>Correo: demo@example.com</p>
-          <p>Contraseña: password</p>
+          <p>Usa tus credenciales reales del backend</p>
         </div>
       </div>
     </div>

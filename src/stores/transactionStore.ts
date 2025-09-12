@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { format } from 'date-fns';
 import apiClient from '../utils/apiClient';
 import toast from 'react-hot-toast';
+import { useAuthStore } from './authStore';
 
 export type TransactionType = 'INCOME' | 'EXPENSE';
 
@@ -10,6 +11,7 @@ export interface Transaction {
   amount: number;
   description: string;
   category: string;
+  categoryId?: number;
   type: TransactionType;
   date: string;
   createdAt: string;
@@ -37,20 +39,39 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
   currentPage: 1,
   outboxTransactions: [],
 
-  fetchTransactions: async (page = 1, filters = {}) => {
+  fetchTransactions: async (page = 1, filters: Record<string, any> = {}) => {
     try {
       set({ isLoading: true });
       
-      // In a real app, this would fetch from your API with pagination
+      // Obtener userId del store de auth
+      const user = useAuthStore.getState().user;
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+      
       const response = await apiClient.get('/transactions', {
         params: {
           page,
+          limit: 10,
+          userId: user.id,
           ...filters,
         },
       });
       
+      // Mapear la respuesta del backend al formato esperado por el frontend
+      const mappedTransactions = response.data.transactions.map((t: any) => ({
+        id: String(t.id),
+        amount: Number(t.amount),
+        description: t.description,
+        category: t.category,
+        categoryId: t.categoryId,
+        type: t.type,
+        date: t.date,
+        createdAt: t.createdAt,
+      }));
+      
       set({
-        transactions: response.data.transactions,
+        transactions: mappedTransactions,
         totalPages: response.data.pagination.totalPages,
         currentPage: page,
         isLoading: false,
@@ -64,14 +85,44 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
 
   addTransaction: async (data) => {
     try {
+      // Obtener userId del store de auth
+      const user = useAuthStore.getState().user;
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
       
-      // In a real app, this would add to your API
-      const response = await apiClient.post('/transactions', data);
+      // Crear transacción temporal para UI optimista
+      const tempId = `temp-${Date.now()}`;
+      const tempTransaction = {
+        ...data,
+        id: tempId,
+        createdAt: new Date().toISOString(),
+      };
       
-      // Update with real data from API
+      // Actualización optimista
+      set(state => ({
+        transactions: [tempTransaction, ...state.transactions],
+      }));
+      
+      // Llamada real al backend
+      const response = await apiClient.post('/transactions', {
+        ...data,
+        userId: parseInt(user.id),
+      });
+      
+      // Actualizar con datos reales del API
       set(state => ({
         transactions: state.transactions.map(t => 
-          t.id === tempId ? response.data : t
+          t.id === tempId ? {
+            id: String(response.data.id),
+            amount: Number(response.data.amount),
+            description: response.data.description,
+            category: response.data.category?.name || data.category,
+            categoryId: response.data.categoryId,
+            type: response.data.category?.type || data.type,
+            date: response.data.date,
+            createdAt: response.data.createdAt,
+          } : t
         ),
       }));
       
@@ -88,6 +139,8 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         };
         
         set(state => ({
+          // Remover transacción temporal
+          transactions: state.transactions.filter(t => !t.id.startsWith('temp-')),
           outboxTransactions: [...state.outboxTransactions, offlineTransaction],
         }));
         
@@ -112,7 +165,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         ),
       }));
       
-      // In a real app, this would update in your API
+      // Llamada real al backend
       await apiClient.put(`/transactions/${id}`, data);
       
       toast.success('Transaction updated successfully');
@@ -133,7 +186,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         transactions: state.transactions.filter(t => t.id !== id),
       }));
       
-      // In a real app, this would delete from your API
+      // Llamada real al backend
       await apiClient.delete(`/transactions/${id}`);
       
       toast.success('Transaction deleted successfully');
@@ -151,12 +204,18 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     const { outboxTransactions } = get();
     if (outboxTransactions.length === 0) return;
     
+    const user = useAuthStore.getState().user;
+    if (!user) return;
+    
     const failedTransactions: Transaction[] = [];
     
     for (const transaction of outboxTransactions) {
       try {
         const { id, createdAt, ...data } = transaction;
-        await apiClient.post('/transactions', data);
+        await apiClient.post('/transactions', {
+          ...data,
+          userId: parseInt(user.id),
+        });
       } catch (error) {
         console.error('Error syncing transaction:', error);
         failedTransactions.push(transaction);
@@ -180,11 +239,11 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     );
     
     const income = todaysTransactions
-      .filter(t => t.type === 'income')
+      .filter(t => t.type === 'INCOME')
       .reduce((sum, t) => sum + t.amount, 0);
       
     const expense = todaysTransactions
-      .filter(t => t.type === 'expense')
+      .filter(t => t.type === 'EXPENSE')
       .reduce((sum, t) => sum + t.amount, 0);
       
     return {
@@ -210,7 +269,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     get().transactions.forEach(transaction => {
       const dateIndex = dates.findIndex(d => transaction.date.startsWith(d));
       if (dateIndex !== -1) {
-        if (transaction.type === 'income') {
+        if (transaction.type === 'INCOME') {
           income[dateIndex] += transaction.amount;
         } else {
           expense[dateIndex] += transaction.amount;

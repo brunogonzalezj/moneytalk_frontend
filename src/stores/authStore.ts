@@ -7,6 +7,7 @@ export interface User {
   id: string;
   email: string;
   displayName?: string;
+  name?: string;
 }
 
 interface AuthState {
@@ -33,29 +34,30 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           
-          // Verificar credenciales de demostración
-          if (email === 'demo@example.com' && password === 'password') {
-            const mockUser = {
-              id: '1',
-              email: 'demo@example.com',
-              displayName: 'Usuario Demo',
-            };
-            
-            set({
-              user: mockUser,
-              token: 'mock-jwt-token',
-              isAuthenticated: true,
-              isLoading: false,
-            });
-            
-            toast.success('Sesión iniciada correctamente');
-            return;
-          }
+          // Llamada real al backend
+          const response = await apiClient.post('/auth/login', { 
+            email, 
+            password 
+          });
           
-          // Si no son las credenciales de demo, mostrar error
-          throw new Error('Por favor, usa las credenciales de demostración mostradas abajo para iniciar sesión.');
+          const { user, token } = response.data;
+          
+          set({
+            user: {
+              id: String(user.id),
+              email: user.email,
+              displayName: user.name || user.displayName,
+              name: user.name,
+            },
+            token,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          
+          toast.success('Sesión iniciada correctamente');
         } catch (error) {
           console.error('Error de inicio de sesión:', error);
+          toast.error('Credenciales incorrectas');
           set({ isLoading: false });
           throw error;
         }
@@ -64,13 +66,22 @@ export const useAuthStore = create<AuthState>()(
       signup: async (email, password, displayName) => {
         try {
           set({ isLoading: true });
-          const response = await apiClient.post('/auth/signup', { 
-            email, password, displayName 
+          const response = await apiClient.post('/auth/register', { 
+            email, 
+            password, 
+            name: displayName 
           });
           
+          const { user, token } = response.data;
+          
           set({
-            user: response.data.user,
-            token: response.data.token,
+            user: {
+              id: String(user.id),
+              email: user.email,
+              displayName: user.name,
+              name: user.name,
+            },
+            token,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -103,10 +114,18 @@ export const useAuthStore = create<AuthState>()(
         }
         
         try {
+          set({ isLoading: true });
           const response = await apiClient.get('/auth/me');
           
+          const user = response.data.user || response.data;
+          
           set({
-            user: response.data.user,
+            user: {
+              id: String(user.id),
+              email: user.email,
+              displayName: user.name || user.displayName,
+              name: user.name,
+            },
             isAuthenticated: true,
             isLoading: false,
           });
@@ -123,12 +142,20 @@ export const useAuthStore = create<AuthState>()(
 
       updateProfile: async (data) => {
         try {
-          const response = await apiClient.put('/auth/profile', data);
+          const response = await apiClient.put('/auth/profile', {
+            name: data.displayName || data.name,
+            email: data.email,
+          });
+          
+          const updatedUser = response.data.user || response.data;
           
           set({
             user: {
               ...get().user!,
-              ...response.data.user,
+              id: String(updatedUser.id),
+              email: updatedUser.email,
+              displayName: updatedUser.name,
+              name: updatedUser.name,
             },
           });
           
@@ -142,7 +169,10 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ token: state.token }),
+      partialize: (state) => ({ 
+        token: state.token, 
+        user: state.user 
+      }),
     }
   )
 );
