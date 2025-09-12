@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   timeout: 10000,
-  withCredentials: true, // Importante para sessions/cookies
   headers: {
     'Content-Type': 'application/json',
   },
@@ -15,11 +14,25 @@ const apiClient = axios.create({
 // Add request interceptor for debugging
 apiClient.interceptors.request.use(
   (config) => {
-    console.log('API Request:', {
-      url: config.url,
-      method: config.method,
-      withCredentials: config.withCredentials
-    });
+    // Agregar token JWT si existe
+    const authState = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+    const token = authState.state?.token;
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log('API Request with token:', {
+        url: config.url,
+        method: config.method,
+        hasToken: !!token,
+        tokenPreview: token.substring(0, 20) + '...'
+      });
+    } else {
+      console.log('API Request without token:', {
+        url: config.url,
+        method: config.method,
+        hasToken: false
+      });
+    }
     
     return config;
   },

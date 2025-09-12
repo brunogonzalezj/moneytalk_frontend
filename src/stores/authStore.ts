@@ -12,6 +12,7 @@ export interface User {
 
 interface AuthState {
   user: User | null;
+  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -25,6 +26,7 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
+      token: null,
       isLoading: false,
       isAuthenticated: false,
 
@@ -37,7 +39,9 @@ export const useAuthStore = create<AuthState>()(
             password 
           });
           
-          const { user } = response.data;
+          const { user, tokens } = response.data;
+          
+          console.log('Login response:', response.data);
           
           set({
             user: {
@@ -46,6 +50,7 @@ export const useAuthStore = create<AuthState>()(
               displayName: user.name || user.displayName,
               name: user.name,
             },
+            token: tokens.accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -69,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
             name: displayName 
           });
           
-          const { user } = response.data;
+          const { user, tokens } = response.data;
           
           set({
             user: {
@@ -78,6 +83,7 @@ export const useAuthStore = create<AuthState>()(
               displayName: user.name,
               name: user.name,
             },
+            token: tokens.accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -107,6 +113,19 @@ export const useAuthStore = create<AuthState>()(
       checkAuth: async () => {
         try {
           set({ isLoading: true });
+          
+          // Si no hay token, no hacer la verificación
+          const currentState = get();
+          if (!currentState.token) {
+            set({
+              user: null,
+              token: null,
+              isAuthenticated: false,
+              isLoading: false,
+            });
+            return;
+          }
+          
           const response = await apiClient.get('/auth/me');
           
           const user = response.data.user || response.data;
@@ -125,6 +144,7 @@ export const useAuthStore = create<AuthState>()(
           console.error('Error de verificación de token:', error);
           set({
             user: null,
+            token: null,
             isAuthenticated: false,
             isLoading: false,
           });
@@ -161,7 +181,8 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       partialize: (state) => ({ 
-        user: state.user 
+        user: state.user,
+        token: state.token
       }),
     }
   )
