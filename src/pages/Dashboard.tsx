@@ -71,15 +71,19 @@ const Dashboard = () => {
      
     setIsLoadingRecommendations(true);
     try {
-      const response = await apiClient.post('/ai/recommendations', {
+      const response = await apiClient.post('/gpt/recommendations', {
         userId: parseInt(user.id)
       });
       
-      setAiRecommendations(response.data.recommendations || []);
+      if (response.data && response.data.recommendations) {
+        setAiRecommendations(response.data.recommendations);
+      } else {
+        // Si no hay estructura esperada, usar mock data
+        setAiRecommendations(mockGptRecommendations);
+      }
     } catch (error) {
       console.error('Error fetching AI recommendations:', error);
-      toast.error('No se pudieron cargar las recomendaciones');
-      // Usar recomendaciones por defecto
+      // No mostrar error toast, solo usar datos mock
       setAiRecommendations(mockGptRecommendations);
     } finally {
       setIsLoadingRecommendations(false);
