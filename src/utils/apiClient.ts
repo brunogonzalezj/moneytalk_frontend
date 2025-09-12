@@ -54,9 +54,13 @@ apiClient.interceptors.request.use(
 // Add response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => {
+    console.log('✅ API Response Success:', response.config.url, response.status);
     return response;
   },
   (error: AxiosError) => {
+    console.log('❌ API Response Error:', error.config?.url, error.response?.status);
+    console.log('Error details:', error.response?.data);
+    
     // Handle network errors
     if (!error.response) {
       toast.error('Network error. Please check your connection.');
