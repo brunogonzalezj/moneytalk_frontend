@@ -12,10 +12,10 @@ import {DateTime} from "luxon";
 import axios from 'axios';
 import toast from "react-hot-toast";
 import Spinner from "../components/ui/Spinner.tsx";
+import { useAuthStore } from '../stores/authStore';
 
 
 interface TransactionFormValues {
-    userId: number; // ID del usuario, reemplazar con el ID real del usuario actual
     description: string;
     amount: number;
     category: string;
@@ -32,6 +32,7 @@ interface Category {
 const NewTransaction = () => {
 
     const {enableVoiceHints} = useUIStore();
+    const { user } = useAuthStore();
     const navigate = useNavigate();
     const {transcript, isListening, error, startListening, stopListening, resetTranscript} = useSpeechRecognition();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,8 +63,6 @@ const NewTransaction = () => {
 
     const createTransaction = async (data: TransactionFormValues) => {
         try {
-            // Obtener el usuario actual
-            const user = useAuthStore.getState().user;
             if (!user) {
                 throw new Error('Usuario no autenticado');
             }
@@ -117,7 +116,6 @@ const NewTransaction = () => {
             category: '',
             type: 'EXPENSE',
             date: DateTime.now().toISODate(), // Fecha actual
-            userId: 1 // Reemplaza con el ID del usuario actual
         },
     });
 
@@ -131,7 +129,6 @@ const NewTransaction = () => {
                 category: '',
                 type: 'EXPENSE',
                 date: DateTime.now().toISODate(),
-                userId: 1 // Reemplaza con el ID del usuario actual
             });
         }
     }, [isListening, reset]);
@@ -173,7 +170,6 @@ const NewTransaction = () => {
                 category: data.category,
                 type: data.type,
                 date: data.date,
-                userId: 1 // Reemplaza con el ID del usuario actual
             });
 
             navigate('/transactions');
