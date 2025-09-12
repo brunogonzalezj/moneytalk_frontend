@@ -2,119 +2,30 @@ import { useEffect, useState } from 'react';
 import { ArrowUpCircle, ArrowDownCircle, TrendingUp, CalendarDays, Plus, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTransactionStore } from '../stores/transactionStore';
+import { useAIStore } from '../stores/aiStore';
 import ChartWrapper from '../components/ui/ChartWrapper';
 import Card from '../components/ui/Card';
 import formatCurrency from '../utils/formatCurrency';
 import Button from '../components/ui/Button';
 import { useAuthStore } from '../stores/authStore';
-import apiClient from '../utils/apiClient';
-import toast from 'react-hot-toast';
 
 const Dashboard = () => {
   const { fetchTransactions, transactions, getTodaysSummary, getWeeklyData } = useTransactionStore();
+  const { recommendations, isLoading: isLoadingRecommendations, fetchRecommendations } = useAIStore();
   const { user } = useAuthStore();
-  const [aiRecommendations, setAiRecommendations] = useState<any[]>([]);
-  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
   
   useEffect(() => {
     // Solo hacer fetch si hay usuario autenticado
     if (user) {
       console.log('Dashboard: Fetching transactions for user:', user.id);
       fetchTransactions();
-      fetchAIRecommendations();
+      fetchRecommendations(); // This will check cache automatically
     }
-  }, [fetchTransactions, user]);
-  
-  const fetchAIRecommendations = async () => {
-    if (!user) return;
-    
-     {/* Recomendaciones de IA */}
-     <div className="mb-6">
-       <div className="flex items-center mb-4">
-         <Brain className="h-6 w-6 text-primary-600 mr-2" />
-         <h2 className="text-xl font-bold text-gray-800">Recomendaciones Inteligentes</h2>
-       </div>
-       
-       {isLoadingRecommendations ? (
-         <div className="bg-white rounded-lg border border-gray-200 p-6">
-           <div className="animate-pulse">
-             <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-             <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-           </div>
-         </div>
-       ) : (
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-           {(aiRecommendations.length > 0 ? aiRecommendations : mockGptRecommendations).map((recommendation) => (
-             <Card key={recommendation.id} className="hover:shadow-md transition-shadow">
-               <div className="flex items-start">
-                 <div className={`p-2 rounded-full mr-3 ${
-                   recommendation.type === 'warning' ? 'bg-yellow-100' :
-                   recommendation.type === 'success' ? 'bg-green-100' :
-                   'bg-blue-100'
-                 }`}>
-                   <Brain className={`h-4 w-4 ${
-                     recommendation.type === 'warning' ? 'text-yellow-600' :
-                     recommendation.type === 'success' ? 'text-green-600' :
-                     'text-blue-600'
-                   }`} />
-                 </div>
-                 <div className="flex-1">
-                   <h3 className="font-semibold text-gray-800 mb-1">{recommendation.title}</h3>
-                   <p className="text-sm text-gray-600">{recommendation.description}</p>
-                 </div>
-               </div>
-             </Card>
-           ))}
-         </div>
-       )}
-     </div>
-     
-    setIsLoadingRecommendations(true);
-    try {
-      const response = await apiClient.post('/ai/recommendations', {
-        userId: parseInt(user.id)
-      });
-      
-      if (response.data && response.data.recommendations) {
-        setAiRecommendations(response.data.recommendations);
-      } else {
-        // Si no hay estructura esperada, usar mock data
-        setAiRecommendations(mockGptRecommendations);
-      }
-    } catch (error) {
-      console.error('Error fetching AI recommendations:', error);
-      // No mostrar error toast, solo usar datos mock
-      setAiRecommendations(mockGptRecommendations);
-    } finally {
-      setIsLoadingRecommendations(false);
-    }
-  };
+  }, [fetchTransactions, fetchRecommendations, user]);
   
   const { income, expense, net } = getTodaysSummary();
   const weeklyData = getWeeklyData();
 
-  // Fallback recommendations si falla la API
-  const mockGptRecommendations = [
-    {
-      id: 1,
-      title: "Optimizar Gastos de Entretenimiento",
-      description: "Tus gastos en entretenimiento representan el 25% de tus gastos mensuales. Considera establecer un límite del 15% para mejorar tus ahorros.",
-      type: "warning"
-    },
-    {
-      id: 2,
-      title: "Oportunidad de Inversión",
-      description: "Con tu balance positivo actual, podrías considerar invertir el 20% de tus ingresos mensuales en un fondo de inversión de bajo riesgo.",
-      type: "success"
-    },
-    {
-      id: 3,
-      title: "Presupuesto de Alimentación",
-      description: "Tus gastos en alimentación están por debajo del promedio. ¡Buen trabajo! Mantén este patrón de consumo responsable.",
-      type: "info"
-    }
-  ];
-  
   const chartData = {
     labels: weeklyData.labels,
     datasets: [
@@ -203,6 +114,47 @@ const Dashboard = () => {
           height={300}
         />
       </div>
+      
+     {/* Recomendaciones de IA */}
+     <div className="mb-6">
+       <div className="flex items-center mb-4">
+         <Brain className="h-6 w-6 text-primary-600 mr-2" />
+         <h2 className="text-xl font-bold text-gray-800">Recomendaciones Inteligentes</h2>
+       </div>
+       
+       {isLoadingRecommendations ? (
+         <div className="bg-white rounded-lg border border-gray-200 p-6">
+           <div className="animate-pulse">
+             <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+             <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+           </div>
+         </div>
+       ) : (
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+           {recommendations.map((recommendation) => (
+             <Card key={recommendation.id} className="hover:shadow-md transition-shadow">
+               <div className="flex items-start">
+                 <div className={`p-2 rounded-full mr-3 ${
+                   recommendation.type === 'warning' ? 'bg-yellow-100' :
+                   recommendation.type === 'success' ? 'bg-green-100' :
+                   'bg-blue-100'
+                 }`}>
+                   <Brain className={`h-4 w-4 ${
+                     recommendation.type === 'warning' ? 'text-yellow-600' :
+                     recommendation.type === 'success' ? 'text-green-600' :
+                     'text-blue-600'
+                   }`} />
+                 </div>
+                 <div className="flex-1">
+                   <h3 className="font-semibold text-gray-800 mb-1">{recommendation.title}</h3>
+                   <p className="text-sm text-gray-600">{recommendation.description}</p>
+                 </div>
+               </div>
+             </Card>
+           ))}
+         </div>
+       )}
+     </div>
       
       {/* Transacciones Recientes */}
       <div className="mb-6">
