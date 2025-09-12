@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Menu, Bell } from 'lucide-react';
+import { Menu, Bell, Download } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
+import Button from '../ui/Button';
 
 const Header = () => {
   const { setSidebarOpen } = useUIStore();
@@ -10,6 +11,8 @@ const Header = () => {
   const location = useLocation();
   const [pageTitle, setPageTitle] = useState('Panel Principal');
   const [isScrolled, setIsScrolled] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
 
   useEffect(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -37,6 +40,49 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      setDeferredPrompt(e);
+      setShowInstallButton(true);
+    };
+
+    const handleAppInstalled = () => {
+      setShowInstallButton(false);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+
+    // Show the install prompt
+    deferredPrompt.prompt();
+
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    } else {
+      console.log('User dismissed the install prompt');
+    }
+
+    // Clear the deferredPrompt
+    setDeferredPrompt(null);
+    setShowInstallButton(false);
+  };
+
   return (
     <header 
       className={`bg-white px-4 py-4 flex items-center justify-between transition-shadow ${
@@ -48,6 +94,18 @@ const Header = () => {
       </div>
 
       <div className="flex items-center space-x-4">
+        {showInstallButton && (
+          <Button
+            variant="outline"
+            size="sm"
+            icon={<Download size={16} />}
+            onClick={handleInstallClick}
+            className="hidden md:flex"
+          >
+            Instalar App
+          </Button>
+        )}
+        
         <button 
           className="p-2 rounded-full hover:bg-base-200 transition-colors relative"
           aria-label="Notificaciones"
