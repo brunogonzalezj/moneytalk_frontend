@@ -23,7 +23,7 @@ const Dashboard = () => {
       fetchTransactions();
       fetchAIRecommendations();
     }
-  }, [fetchTransactions]);
+  }, [fetchTransactions, user]);
   
   const fetchAIRecommendations = async () => {
     if (!user) return;
