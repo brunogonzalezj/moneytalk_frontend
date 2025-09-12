@@ -12,7 +12,6 @@ export interface User {
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -26,7 +25,6 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      token: null,
       isLoading: false,
       isAuthenticated: false,
 
@@ -34,13 +32,12 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           
-          // Llamada real al backend
           const response = await apiClient.post('/auth/login', { 
             email, 
             password 
           });
           
-          const { user, tokens } = response.data;
+          const { user } = response.data;
           
           set({
             user: {
@@ -49,7 +46,6 @@ export const useAuthStore = create<AuthState>()(
               displayName: user.name || user.displayName,
               name: user.name,
             },
-            token: tokens.accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -73,7 +69,7 @@ export const useAuthStore = create<AuthState>()(
             name: displayName 
           });
           
-          const { user, tokens } = response.data;
+          const { user } = response.data;
           
           set({
             user: {
@@ -82,7 +78,6 @@ export const useAuthStore = create<AuthState>()(
               displayName: user.name,
               name: user.name,
             },
-            token: tokens.accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -98,9 +93,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        // Llamar al endpoint de logout para limpiar la sesión
+        apiClient.post('/auth/logout').catch(console.error);
+        
         set({
           user: null,
-          token: null,
           isAuthenticated: false,
         });
         
@@ -108,13 +105,6 @@ export const useAuthStore = create<AuthState>()(
       },
 
       checkAuth: async () => {
-        const { token } = get();
-        
-        if (!token) {
-          set({ isLoading: false });
-          return;
-        }
-        
         try {
           set({ isLoading: true });
           const response = await apiClient.get('/auth/me');
@@ -135,7 +125,6 @@ export const useAuthStore = create<AuthState>()(
           console.error('Error de verificación de token:', error);
           set({
             user: null,
-            token: null,
             isAuthenticated: false,
             isLoading: false,
           });
@@ -172,7 +161,6 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       partialize: (state) => ({ 
-        token: state.token, 
         user: state.user 
       }),
     }

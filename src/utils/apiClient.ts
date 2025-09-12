@@ -4,31 +4,21 @@ import toast from 'react-hot-toast';
 
 // Create axios instance with default config
 const apiClient = axios.create({
-  // Usar la URL del backend local
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
   timeout: 10000,
+  withCredentials: true, // Importante para sessions/cookies
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Add request interceptor to inject auth token
+// Add request interceptor for debugging
 apiClient.interceptors.request.use(
   (config) => {
-    // Get token from Zustand store
-    const token = useAuthStore.getState().token;
-    
-    // If token exists, add it to request headers
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    // Debug log para verificar que el token se está enviando
     console.log('API Request:', {
       url: config.url,
       method: config.method,
-      hasToken: !!token,
-      token: token ? `${token.substring(0, 20)}...` : 'No token'
+      withCredentials: config.withCredentials
     });
     
     return config;
@@ -55,7 +45,7 @@ apiClient.interceptors.response.use(
     
     switch (status) {
       case 401:
-        // Unauthorized - clear auth and redirect to login
+        // Unauthorized - clear auth
         toast.error('Session expired. Please log in again.');
         useAuthStore.getState().logout();
         break;

@@ -43,16 +43,12 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     try {
       set({ isLoading: true });
       
-      // Obtener userId del store de auth
       const user = useAuthStore.getState().user;
-      const token = useAuthStore.getState().token;
       
       if (!user) {
-        throw new Error('Usuario no autenticado');
-      }
-      
-      if (!token) {
-        throw new Error('Token no disponible');
+        console.log('No user found, skipping fetch');
+        set({ isLoading: false });
+        return;
       }
       
       console.log('Fetching transactions for user:', user.id);
@@ -68,7 +64,6 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       
       console.log('Transactions response:', response.data);
       
-      // Mapear la respuesta del backend al formato esperado por el frontend
       const mappedTransactions = response.data.transactions.map((t: any) => ({
         id: String(t.id),
         amount: Number(t.amount),
@@ -89,9 +84,8 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
     } catch (error) {
       console.error('Error fetching transactions:', error);
       
-      // Si es error 401, hacer logout
       if ((error as any)?.response?.status === 401) {
-        console.log('Token inválido, haciendo logout...');
+        console.log('Session expired, logging out...');
         useAuthStore.getState().logout();
         return;
       }
@@ -104,13 +98,11 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
 
   addTransaction: async (data) => {
     try {
-      // Obtener userId del store de auth
       const user = useAuthStore.getState().user;
       if (!user) {
         throw new Error('Usuario no autenticado');
       }
       
-      // Crear transacción temporal para UI optimista
       const tempId = `temp-${Date.now()}`;
       const tempTransaction = {
         ...data,
@@ -118,19 +110,16 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         createdAt: new Date().toISOString(),
       };
       
-      // Actualización optimista
       set(state => ({
         transactions: [tempTransaction, ...state.transactions],
       }));
       
-      // Llamada real al backend
       const response = await apiClient.post('/transactions', {
         ...data,
-        userId: parseInt(user.id), // Asegurar que sea number
+        userId: parseInt(user.id),
         categoryId: typeof data.category === 'string' ? parseInt(data.category) : data.category,
       });
       
-      // Actualizar con datos reales del API
       set(state => ({
         transactions: state.transactions.map(t => 
           t.id === tempId ? {
@@ -159,14 +148,12 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         };
         
         set(state => ({
-          // Remover transacción temporal
           transactions: state.transactions.filter(t => !t.id.startsWith('temp-')),
           outboxTransactions: [...state.outboxTransactions, offlineTransaction],
         }));
         
         toast.success('Transaction saved offline');
       } else {
-        // Remove optimistic update
         set(state => ({
           transactions: state.transactions.filter(t => !t.id.startsWith('temp-')),
         }));
@@ -178,21 +165,18 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
 
   updateTransaction: async (id, data) => {
     try {
-      // Optimistic update
       set(state => ({
         transactions: state.transactions.map(t => 
           t.id === id ? { ...t, ...data } : t
         ),
       }));
       
-      // Llamada real al backend
       await apiClient.put(`/transactions/${id}`, data);
       
       toast.success('Transaction updated successfully');
     } catch (error) {
       console.error('Error updating transaction:', error);
       
-      // Revert optimistic update
       get().fetchTransactions(get().currentPage);
       
       toast.error('Failed to update transaction');
@@ -201,19 +185,16 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
 
   deleteTransaction: async (id) => {
     try {
-      // Optimistic delete
       set(state => ({
         transactions: state.transactions.filter(t => t.id !== id),
       }));
       
-      // Llamada real al backend
       await apiClient.delete(`/transactions/${id}`);
       
       toast.success('Transaction deleted successfully');
     } catch (error) {
       console.error('Error deleting transaction:', error);
       
-      // Revert optimistic delete
       get().fetchTransactions(get().currentPage);
       
       toast.error('Failed to delete transaction');
