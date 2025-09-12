@@ -115,6 +115,7 @@ export const useAuthStore = create<AuthState>()(
         
         set({
           user: null,
+          token: null,
           isAuthenticated: false,
         });
         
@@ -127,11 +128,28 @@ export const useAuthStore = create<AuthState>()(
           
           // Si no hay token, no hacer la verificación
           const currentState = get();
+          console.log('checkAuth - Current state:', {
+            hasUser: !!currentState.user,
+            hasToken: !!currentState.token,
+            isAuthenticated: currentState.isAuthenticated
+          });
+          
           if (!currentState.token) {
+            console.log('checkAuth - No token found, clearing auth state');
             set({
               user: null,
               token: null,
               isAuthenticated: false,
+              isLoading: false,
+            });
+            return;
+          }
+          
+          // Si ya tenemos usuario y token, marcar como autenticado sin hacer request
+          if (currentState.user && currentState.token) {
+            console.log('checkAuth - User and token exist, setting authenticated');
+            set({
+              isAuthenticated: true,
               isLoading: false,
             });
             return;
@@ -193,7 +211,8 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       partialize: (state) => ({ 
         user: state.user,
-        token: state.token
+        token: state.token,
+        isAuthenticated: state.isAuthenticated
       }),
     }
   )
