@@ -45,9 +45,17 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       
       // Obtener userId del store de auth
       const user = useAuthStore.getState().user;
+      const token = useAuthStore.getState().token;
+      
       if (!user) {
         throw new Error('Usuario no autenticado');
       }
+      
+      if (!token) {
+        throw new Error('Token no disponible');
+      }
+      
+      console.log('Fetching transactions for user:', user.id);
       
       const response = await apiClient.get('/transactions', {
         params: {
@@ -57,6 +65,8 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
           ...filters,
         },
       });
+      
+      console.log('Transactions response:', response.data);
       
       // Mapear la respuesta del backend al formato esperado por el frontend
       const mappedTransactions = response.data.transactions.map((t: any) => ({
@@ -78,7 +88,16 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       });
     } catch (error) {
       console.error('Error fetching transactions:', error);
-      toast.error('Failed to load transactions');
+      
+      // Si es error 401, hacer logout
+      if ((error as any)?.response?.status === 401) {
+        console.log('Token inválido, haciendo logout...');
+        useAuthStore.getState().logout();
+        return;
+      }
+      
+      const errorMessage = (error as any)?.response?.data?.error || 'Error al cargar transacciones';
+      toast.error(errorMessage);
       set({ isLoading: false });
     }
   },

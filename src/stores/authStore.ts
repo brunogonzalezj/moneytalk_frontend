@@ -40,7 +40,7 @@ export const useAuthStore = create<AuthState>()(
             password 
           });
           
-          const { user, token } = response.data;
+          const { user, tokens } = response.data;
           
           set({
             user: {
@@ -49,7 +49,7 @@ export const useAuthStore = create<AuthState>()(
               displayName: user.name || user.displayName,
               name: user.name,
             },
-            token,
+            token: tokens.accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -57,7 +57,8 @@ export const useAuthStore = create<AuthState>()(
           toast.success('Sesión iniciada correctamente');
         } catch (error) {
           console.error('Error de inicio de sesión:', error);
-          toast.error('Credenciales incorrectas');
+          const errorMessage = (error as any)?.response?.data?.error || 'Credenciales incorrectas';
+          toast.error(errorMessage);
           set({ isLoading: false });
           throw error;
         }
@@ -72,7 +73,7 @@ export const useAuthStore = create<AuthState>()(
             name: displayName 
           });
           
-          const { user, token } = response.data;
+          const { user, tokens } = response.data;
           
           set({
             user: {
@@ -81,7 +82,7 @@ export const useAuthStore = create<AuthState>()(
               displayName: user.name,
               name: user.name,
             },
-            token,
+            token: tokens.accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -89,7 +90,8 @@ export const useAuthStore = create<AuthState>()(
           toast.success('Cuenta creada exitosamente');
         } catch (error) {
           console.error('Error de registro:', error);
-          toast.error('No se pudo crear la cuenta');
+          const errorMessage = (error as any)?.response?.data?.error || 'No se pudo crear la cuenta';
+          toast.error(errorMessage);
           set({ isLoading: false });
           throw error;
         }

@@ -13,7 +13,11 @@ const Dashboard = () => {
   const { user } = useAuthStore();
   
   useEffect(() => {
-    fetchTransactions();
+    // Solo hacer fetch si hay usuario autenticado
+    if (user) {
+      console.log('Dashboard: Fetching transactions for user:', user.id);
+      fetchTransactions();
+    }
   }, [fetchTransactions]);
   
   const { income, expense, net } = getTodaysSummary();

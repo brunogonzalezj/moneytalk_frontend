@@ -23,6 +23,14 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
+    // Debug log para verificar que el token se está enviando
+    console.log('API Request:', {
+      url: config.url,
+      method: config.method,
+      hasToken: !!token,
+      token: token ? `${token.substring(0, 20)}...` : 'No token'
+    });
+    
     return config;
   },
   (error) => {
