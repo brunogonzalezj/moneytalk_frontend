@@ -39,7 +39,7 @@ export const useAuthStore = create<AuthState>()(
             password 
           });
           
-          const { user, tokens } = response.data;
+          const { user, accessToken, refreshToken } = response.data;
           
           console.log('Login response:', response.data);
           
@@ -50,7 +50,7 @@ export const useAuthStore = create<AuthState>()(
               displayName: user.name || user.displayName,
               name: user.name,
             },
-            token: tokens.accessToken,
+            token: accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
@@ -74,7 +74,7 @@ export const useAuthStore = create<AuthState>()(
             name: displayName 
           });
           
-          const { user, tokens } = response.data;
+          const { user, accessToken, refreshToken } = response.data;
           
           set({
             user: {
@@ -83,7 +83,7 @@ export const useAuthStore = create<AuthState>()(
               displayName: user.name,
               name: user.name,
             },
-            token: tokens.accessToken,
+            token: accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
