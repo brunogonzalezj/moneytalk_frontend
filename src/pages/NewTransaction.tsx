@@ -62,13 +62,19 @@ const NewTransaction = () => {
 
     const createTransaction = async (data: TransactionFormValues) => {
         try {
+            // Obtener el usuario actual
+            const user = useAuthStore.getState().user;
+            if (!user) {
+                throw new Error('Usuario no autenticado');
+            }
+            
             const response = await axios.post('http://localhost:3000/api/transactions', {
                 description: data.description,
                 amount: data.amount,
-                categoryId: data.category ? parseInt(data.category) : null,
+                categoryId: parseInt(data.category),
                 type: data.type,
                 date: DateTime.fromISO(data.date).toJSDate(),
-                userId: data.userId // Reemplaza con el ID del usuario actual
+                userId: parseInt(user.id) // Convertir string a number
             });
             toast.success('Transacción creada exitosamente');
             if (!response.data) {

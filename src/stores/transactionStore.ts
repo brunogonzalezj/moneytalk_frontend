@@ -107,7 +107,8 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       // Llamada real al backend
       const response = await apiClient.post('/transactions', {
         ...data,
-        userId: parseInt(user.id),
+        userId: parseInt(user.id), // Asegurar que sea number
+        categoryId: typeof data.category === 'string' ? parseInt(data.category) : data.category,
       });
       
       // Actualizar con datos reales del API
