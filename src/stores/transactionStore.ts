@@ -65,7 +65,6 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         params: {
           page,
           limit: 10,
-          userId: user.id,
           ...filters,
         },
       });

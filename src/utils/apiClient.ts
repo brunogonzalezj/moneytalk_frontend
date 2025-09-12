@@ -32,7 +32,8 @@ apiClient.interceptors.request.use(
         url: config.url,
         method: config.method,
         hasToken: !!token,
-        tokenPreview: token.substring(0, 30) + '...'
+        tokenPreview: token.substring(0, 30) + '...',
+        authHeader: config.headers.Authorization?.substring(0, 20) + '...'
       });
     } else {
       console.log('API Request without token:', {
