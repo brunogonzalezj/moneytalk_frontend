@@ -211,7 +211,7 @@ const Dashboard = () => {
                         </span>
                       </td>
                       <td className={`px-4 py-3 text-right whitespace-nowrap font-medium ${
-                        transaction.type === 'INCOME' 
+                        transaction.type === 'INCOME'
                           ? 'text-primary-600' 
                           : 'text-accent-500'
                       }`}>

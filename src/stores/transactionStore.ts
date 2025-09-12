@@ -65,7 +65,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
         description: t.description,
         category: t.category,
         categoryId: t.categoryId,
-        type: t.type,
+        type: t.type as TransactionType,
         date: t.date,
         createdAt: t.createdAt,
       }));

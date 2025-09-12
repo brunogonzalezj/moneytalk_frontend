@@ -69,17 +69,17 @@ const Reports = () => {
   }, [dateRange, customRange, transactions]);
   
   const totalIncome = filteredTransactions
-    .filter(t => t.type === 'income')
+    .filter(t => t.type === 'INCOME')
     .reduce((sum, t) => sum + t.amount, 0);
     
   const totalExpenses = filteredTransactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type === 'EXPENSE')
     .reduce((sum, t) => sum + t.amount, 0);
     
   const netCashflow = totalIncome - totalExpenses;
   
   const expensesByCategory = filteredTransactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type === 'EXPENSE')
     .reduce((acc, transaction) => {
       const { category, amount } = transaction;
       acc[category] = (acc[category] || 0) + amount;
@@ -112,7 +112,7 @@ const Reports = () => {
         monthlyData[monthYear] = { income: 0, expense: 0 };
       }
       
-      if (transaction.type === 'income') {
+      if (transaction.type === 'INCOME') {
         monthlyData[monthYear].income += transaction.amount;
       } else {
         monthlyData[monthYear].expense += transaction.amount;
