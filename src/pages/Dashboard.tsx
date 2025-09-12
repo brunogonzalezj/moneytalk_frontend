@@ -71,7 +71,7 @@ const Dashboard = () => {
      
     setIsLoadingRecommendations(true);
     try {
-      const response = await apiClient.post('/gpt/recommendations', {
+      const response = await apiClient.post('/ai/recommendations', {
         userId: parseInt(user.id)
       });
       
