@@ -2,6 +2,7 @@ import { useEffect} from 'react';
 import { ArrowUpCircle, ArrowDownCircle, TrendingUp, CalendarDays, Plus, Brain } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTransactionStore } from '../stores/transactionStore';
+import { useBudgetStore } from '../stores/budgetStore';
 import { useAIStore } from '../stores/aiStore';
 import ChartWrapper from '../components/ui/ChartWrapper';
 import Card from '../components/ui/Card';
@@ -11,6 +12,7 @@ import { useAuthStore } from '../stores/authStore';
 
 const Dashboard = () => {
   const { fetchTransactions, transactions, getTodaysSummary, getWeeklyData } = useTransactionStore();
+  const { fetchBudgets, fetchRecurringPayments, getTotalBudgetAllocations, getTotalRecurringPayments, getAvailableBalance } = useBudgetStore();
   const { recommendations, isLoading: isLoadingRecommendations, fetchRecommendations } = useAIStore();
   const { user } = useAuthStore();
   
@@ -19,11 +21,16 @@ const Dashboard = () => {
     if (user) {
       console.log('Dashboard: Fetching transactions for user:', user.id);
       fetchTransactions();
+      fetchBudgets();
+      fetchRecurringPayments();
       fetchRecommendations(); // This will check cache automatically
     }
-  }, [fetchTransactions, fetchRecommendations, user]);
+  }, [fetchTransactions, fetchBudgets, fetchRecurringPayments, fetchRecommendations, user]);
   
   const { income, expense, net } = getTodaysSummary();
+  const budgetAllocations = getTotalBudgetAllocations();
+  const recurringPayments = getTotalRecurringPayments();
+  const availableBalance = getAvailableBalance(income, expense);
   const weeklyData = getWeeklyData();
 
   const chartData = {
@@ -92,17 +99,53 @@ const Dashboard = () => {
         <Card className="hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Balance Neto</p>
-              <h3 className={`text-xl font-bold ${net >= 0 ? 'text-primary-600' : 'text-accent-500'}`}>
-                {formatCurrency(net)}
+              <p className="text-sm font-medium text-gray-500 mb-1">Balance Disponible</p>
+              <h3 className={`text-xl font-bold ${availableBalance >= 0 ? 'text-primary-600' : 'text-accent-500'}`}>
+                {formatCurrency(availableBalance)}
               </h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Después de presupuestos y pagos recurrentes
+              </p>
             </div>
-            <div className={`p-3 rounded-full ${net >= 0 ? 'bg-primary-100' : 'bg-accent-100'}`}>
-              <TrendingUp className={`h-6 w-6 ${net >= 0 ? 'text-primary-600' : 'text-accent-600'}`} />
+            <div className={`p-3 rounded-full ${availableBalance >= 0 ? 'bg-primary-100' : 'bg-accent-100'}`}>
+              <TrendingUp className={`h-6 w-6 ${availableBalance >= 0 ? 'text-primary-600' : 'text-accent-600'}`} />
             </div>
           </div>
         </Card>
       </div>
+      
+      {/* Budget and Recurring Payments Summary */}
+      {(budgetAllocations > 0 || recurringPayments > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {budgetAllocations > 0 && (
+            <Card className="hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Asignación Mensual a Presupuestos</p>
+                  <h3 className="text-lg font-bold text-blue-600">{formatCurrency(budgetAllocations)}</h3>
+                </div>
+                <Link to="/budgets" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                  Ver Presupuestos →
+                </Link>
+              </div>
+            </Card>
+          )}
+          
+          {recurringPayments > 0 && (
+            <Card className="hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-1">Pagos Recurrentes Mensuales</p>
+                  <h3 className="text-lg font-bold text-orange-600">{formatCurrency(recurringPayments)}</h3>
+                </div>
+                <Link to="/recurring-payments" className="text-orange-600 hover:text-orange-800 text-sm font-medium">
+                  Ver Pagos →
+                </Link>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
       
       {/* Sección de Gráficos */}
       <div className="mb-6">

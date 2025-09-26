@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   ListOrdered, 
+  PiggyBank,
   BarChart3, 
   UserCircle, 
   Plus
@@ -77,6 +78,29 @@ const BottomNavigation = () => {
                   <Plus size={24} className="text-white" />
                 </div>
                 <span className="text-xs font-medium mt-1 text-primary-600">Agregar</span>
+              </>
+            )}
+          </NavLink>
+
+          {/* Budgets */}
+          <NavLink 
+            to="/budgets"
+            className={({ isActive }) => 
+              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] ${
+                isActive 
+                  ? 'text-primary-600' 
+                  : 'text-gray-500'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <div className={`p-2 rounded-xl transition-all duration-200 ${
+                  isActive ? 'bg-primary-100 scale-110' : 'hover:bg-gray-100'
+                }`}>
+                  <PiggyBank size={20} />
+                </div>
+                <span className="text-xs font-medium mt-1">Metas</span>
               </>
             )}
           </NavLink>

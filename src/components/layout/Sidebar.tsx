@@ -2,6 +2,8 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   ListOrdered, 
+  PiggyBank,
+  RefreshCw,
   BarChart3, 
   UserCircle, 
   LogOut, 
@@ -99,6 +101,36 @@ const Sidebar = () => {
             >
               <Plus size={20} className="mr-3 transition-transform group-hover:scale-110" />
               Nueva Transacción
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/budgets" 
+              className={({ isActive }) => 
+                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                  isActive 
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600'
+                }`
+              }
+            >
+              <PiggyBank size={20} className="mr-3 transition-transform group-hover:scale-110" />
+              Presupuestos
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/recurring-payments" 
+              className={({ isActive }) => 
+                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                  isActive 
+                    ? 'bg-primary-500 text-white shadow-md' 
+                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-600'
+                }`
+              }
+            >
+              <RefreshCw size={20} className="mr-3 transition-transform group-hover:scale-110" />
+              Pagos Recurrentes
             </NavLink>
           </li>
           <li>
