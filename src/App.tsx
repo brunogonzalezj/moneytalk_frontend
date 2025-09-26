@@ -11,12 +11,12 @@ const Signup = lazy(() => import('./pages/Signup'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Transactions = lazy(() => import('./pages/Transactions'));
 const NewTransaction = lazy(() => import('./pages/NewTransaction'));
-const Budgets = lazy(() => import('./pages/Budgets'));
-const RecurringPayments = lazy(() => import('./pages/RecurringPayments'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Profile = lazy(() => import('./pages/Profile'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const Offline = lazy(() => import('./pages/Offline'));
+const Budgets = lazy(() => import('./pages/Budgets'));
+const RecurringPayments = lazy(() => import('./pages/RecurringPayments'));
 
 const App = () => {
   const { checkAuth, isLoading } = useAuthStore();
@@ -51,10 +51,10 @@ const App = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/transactions/new" element={<NewTransaction />} />
-          <Route path="/budgets" element={<Budgets />} />
-          <Route path="/recurring-payments" element={<RecurringPayments />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/budgets" element={<Budgets />} />
+          <Route path="/recurring-payments" element={<RecurringPayments />} />
         </Route>
 
         {/* 404 */}
