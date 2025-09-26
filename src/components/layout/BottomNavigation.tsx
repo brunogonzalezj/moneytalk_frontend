@@ -98,9 +98,9 @@ const BottomNavigation = () => {
             )}
           </NavLink>
 
-          {/* Reports */}
+          {/* Recurring Payments */}
           <NavLink 
-            to="/reports"
+            to="/recurring-payments"
             className={({ isActive }) => 
               `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] ${
                 isActive 
@@ -114,9 +114,9 @@ const BottomNavigation = () => {
                 <div className={`p-2 rounded-xl transition-all duration-200 ${
                   isActive ? 'bg-primary-100 scale-110' : 'hover:bg-gray-100'
                 }`}>
-                  <BarChart3 size={20} />
+                  <RefreshCw size={20} />
                 </div>
-                <span className="text-xs font-medium mt-1">Reportes</span>
+                <span className="text-xs font-medium mt-1">Pagos</span>
               </>
             )}
           </NavLink>
