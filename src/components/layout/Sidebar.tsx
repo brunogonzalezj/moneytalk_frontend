@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ListOrdered, PiggyBank, RefreshCw, BarChart3, CircleUser as UserCircle, LogOut, Plus, X } from 'lucide-react'om '../../stores/uiStore';
+import { LayoutDashboard, ListOrdered, PiggyBank, RefreshCw, BarChart3, CircleUser as UserCircle, LogOut, Plus, X } from 'lucide-react';
+import { useUIStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
 import Logo from './Logo';
 
