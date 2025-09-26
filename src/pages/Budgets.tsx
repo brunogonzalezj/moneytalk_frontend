@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Target, Calendar, TrendingUp, Edit, Trash2, PiggyBank } from 'lucide-react';
+import { Plus, Target, Calendar, TrendingUp, CreditCard as Edit, Trash2, PiggyBank } from 'lucide-react';
 import { useBudgetStore, Budget, BudgetType, BudgetStatus } from '../stores/budgetStore';
 import { useForm } from 'react-hook-form';
 import Button from '../components/ui/Button';

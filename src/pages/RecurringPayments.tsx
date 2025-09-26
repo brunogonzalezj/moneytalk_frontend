@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Calendar, Clock, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Plus, Calendar, Clock, CreditCard as Edit, Trash2, RefreshCw } from 'lucide-react';
 import { useBudgetStore, RecurringPayment, RecurringFrequency, RecurringStatus } from '../stores/budgetStore';
 import { useForm } from 'react-hook-form';
 import Button from '../components/ui/Button';

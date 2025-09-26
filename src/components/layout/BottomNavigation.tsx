@@ -1,12 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  ListOrdered, 
-  PiggyBank,
-  BarChart3, 
-  UserCircle, 
-  Plus
-} from 'lucide-react';
+import { LayoutDashboard, ListOrdered, PiggyBank, BarChart3, CircleUser as UserCircle, Plus } from 'lucide-react';
 
 const BottomNavigation = () => {
   return (
