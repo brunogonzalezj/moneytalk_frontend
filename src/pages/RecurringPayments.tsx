@@ -101,6 +101,11 @@ const RecurringPayments = () => {
     }
   };
 
+  const handleToggleStatus = async (payment: RecurringPayment) => {
+    const newStatus: RecurringStatus = payment.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
+    await updateRecurringPayment(payment.id, { status: newStatus });
+  };
+
   const getFrequencyLabel = (frequency: RecurringFrequency) => {
     const labels = {
       DAILY: 'Diario',
@@ -339,9 +344,23 @@ const RecurringPayments = () => {
         {recurringPayments.map((payment) => (
           <Card key={payment.id} className="hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">{payment.name}</h3>
-                <div className="flex items-center space-x-2 mt-1">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-gray-800">{payment.name}</h3>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-success toggle-sm"
+                      checked={payment.status === 'ACTIVE'}
+                      onChange={() => handleToggleStatus(payment)}
+                      title={payment.status === 'ACTIVE' ? 'Desactivar pago' : 'Activar pago'}
+                    />
+                    <span className="text-xs text-gray-500">
+                      {payment.status === 'ACTIVE' ? 'Activo' : 'Pausado'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
                     {payment.status}
                   </span>
@@ -350,7 +369,7 @@ const RecurringPayments = () => {
                   </span>
                 </div>
               </div>
-              <div className="flex space-x-1">
+              <div className="flex space-x-1 ml-2">
                 <button
                   onClick={() => handleEdit(payment)}
                   className="p-1 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700"
