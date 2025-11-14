@@ -306,14 +306,22 @@ export const useBudgetStore = create<BudgetState>()(
 
       updateRecurringPayment: async (id, data) => {
         try {
-          await apiClient.put(`/recurring-payments/${id}`, data);
-          
+          const backendData = { ...data };
+
+          if (data.status) {
+            backendData.isActive = data.status === 'ACTIVE';
+            delete backendData.status;
+          }
+
+          const response = await apiClient.put(`/recurring-payments/${id}`, backendData);
+          console.log('🔍 Update response:', response.data);
+
           set(state => ({
-            recurringPayments: state.recurringPayments.map(p => 
+            recurringPayments: state.recurringPayments.map(p =>
               p.id === id ? { ...p, ...data } : p
             ),
           }));
-          
+
           toast.success('Pago recurrente actualizado');
         } catch (error) {
           console.error('Error updating recurring payment:', error);
