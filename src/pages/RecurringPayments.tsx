@@ -55,12 +55,21 @@ const RecurringPayments = () => {
 
   const onSubmit = async (data: RecurringPaymentFormValues) => {
     try {
+      const dateValue = data.nextPaymentDate;
+      const isoDate = dateValue.includes('T')
+        ? dateValue
+        : new Date(dateValue + 'T00:00:00').toISOString();
+
       if (editingPayment) {
-        await updateRecurringPayment(editingPayment.id, data);
+        await updateRecurringPayment(editingPayment.id, {
+          ...data,
+          nextPaymentDate: isoDate,
+        });
         setEditingPayment(null);
       } else {
         await addRecurringPayment({
           ...data,
+          nextPaymentDate: isoDate,
           category: categories.find(c => c.id === data.categoryId)?.name || 'Sin categoría',
           status: 'ACTIVE' as RecurringStatus,
         });
@@ -74,12 +83,13 @@ const RecurringPayments = () => {
 
   const handleEdit = (payment: RecurringPayment) => {
     setEditingPayment(payment);
+    const dateValue = payment.nextPaymentDate.split('T')[0];
     reset({
       name: payment.name,
       description: payment.description || '',
       amount: payment.amount,
       frequency: payment.frequency,
-      nextPaymentDate: payment.nextPaymentDate,
+      nextPaymentDate: dateValue,
       categoryId: payment.categoryId,
     });
     setShowForm(true);

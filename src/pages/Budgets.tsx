@@ -39,12 +39,26 @@ const Budgets = () => {
 
   const onSubmit = async (data: BudgetFormValues) => {
     try {
+      const budgetData: any = {
+        name: data.name,
+        description: data.description,
+        type: data.type,
+        targetAmount: data.targetAmount,
+      };
+
+      if (data.targetDate) {
+        const dateValue = data.targetDate;
+        budgetData.targetDate = dateValue.includes('T')
+          ? dateValue
+          : new Date(dateValue + 'T00:00:00').toISOString();
+      }
+
       if (editingBudget) {
-        await updateBudget(editingBudget.id, data);
+        await updateBudget(editingBudget.id, budgetData);
         setEditingBudget(null);
       } else {
         await addBudget({
-          ...data,
+          ...budgetData,
           status: 'ACTIVE' as BudgetStatus,
         });
       }
@@ -57,12 +71,13 @@ const Budgets = () => {
 
   const handleEdit = (budget: Budget) => {
     setEditingBudget(budget);
+    const dateValue = budget.targetDate ? budget.targetDate.split('T')[0] : '';
     reset({
       name: budget.name,
       description: budget.description || '',
       type: budget.type,
       targetAmount: budget.targetAmount,
-      targetDate: budget.targetDate || '',
+      targetDate: dateValue,
     });
     setShowForm(true);
   };
