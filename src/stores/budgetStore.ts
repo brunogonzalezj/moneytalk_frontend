@@ -106,33 +106,55 @@ export const useBudgetStore = create<BudgetState>()(
         try {
           const user = useAuthStore.getState().user;
           if (!user) throw new Error('Usuario no autenticado');
-          
-          const response = await apiClient.post('/budgets', {
+
+          const now = new Date();
+          const budgetData: any = {
             ...data,
             userId: parseInt(user.id),
             currentAmount: 0,
-          });
-          
+            categoryId: 1,
+            period: 'CUSTOM',
+            amount: data.targetAmount,
+          };
+
+          if (!budgetData.targetDate) {
+            const oneYearFromNow = new Date(now);
+            oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+            budgetData.targetDate = oneYearFromNow.toISOString();
+          } else if (!budgetData.targetDate.includes('T')) {
+            budgetData.targetDate = new Date(budgetData.targetDate + 'T23:59:59').toISOString();
+          }
+
+          budgetData.startDate = now.toISOString();
+          budgetData.endDate = budgetData.targetDate;
+
+          console.log('🔍 Sending budget data:', budgetData);
+
+          const response = await apiClient.post('/budgets', budgetData);
+
+          console.log('✅ Budget created:', response.data);
+
           const newBudget = {
             id: String(response.data.id),
             name: response.data.name,
             description: response.data.description,
             type: response.data.type as BudgetType,
-            targetAmount: Number(response.data.targetAmount),
+            targetAmount: Number(response.data.targetAmount || response.data.amount),
             currentAmount: Number(response.data.currentAmount || 0),
-            targetDate: response.data.targetDate,
+            targetDate: response.data.targetDate || response.data.endDate,
             status: response.data.status as BudgetStatus,
             createdAt: response.data.createdAt,
             updatedAt: response.data.updatedAt,
           };
-          
+
           set(state => ({
             budgets: [newBudget, ...state.budgets],
           }));
-          
+
           toast.success('Presupuesto creado exitosamente');
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error adding budget:', error);
+          console.error('Error details:', error.response?.data);
           toast.error('Error al crear presupuesto');
         }
       },
