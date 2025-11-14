@@ -189,30 +189,44 @@ export const useBudgetStore = create<BudgetState>()(
       fetchRecurringPayments: async () => {
         try {
           set({ isLoading: true });
-          
+
           const user = useAuthStore.getState().user;
           if (!user) {
             set({ isLoading: false });
             return;
           }
-          
+
           const response = await apiClient.get('/recurring-payments');
-          
-          const mappedPayments = response.data.map((p: any) => ({
-            id: String(p.id),
-            name: p.name,
-            description: p.description,
-            amount: Number(p.amount),
-            frequency: p.frequency as RecurringFrequency,
-            nextPaymentDate: p.nextPaymentDate,
-            lastPaymentDate: p.lastPaymentDate,
-            categoryId: p.categoryId,
-            category: p.category?.name || 'Sin categoría',
-            status: p.status as RecurringStatus,
-            createdAt: p.createdAt,
-            updatedAt: p.updatedAt,
-          }));
-          
+
+          const data = Array.isArray(response.data) ? response.data : [];
+
+          const mappedPayments = data.map((p: any) => {
+            const statusMap: Record<string, RecurringStatus> = {
+              'true': 'ACTIVE',
+              'false': 'PAUSED',
+              'ACTIVE': 'ACTIVE',
+              'PAUSED': 'PAUSED',
+              'CANCELLED': 'CANCELLED'
+            };
+
+            return {
+              id: String(p.id),
+              name: p.name || '',
+              description: p.description || '',
+              amount: Number(p.amount),
+              frequency: p.frequency as RecurringFrequency,
+              nextPaymentDate: p.nextDate || p.nextPaymentDate || p.startDate || new Date().toISOString(),
+              lastPaymentDate: p.lastPaymentDate,
+              categoryId: p.categoryId,
+              category: p.category?.name || 'Sin categoría',
+              status: (p.isActive !== undefined
+                ? (p.isActive ? 'ACTIVE' : 'PAUSED')
+                : statusMap[String(p.status)] || 'ACTIVE') as RecurringStatus,
+              createdAt: p.createdAt || new Date().toISOString(),
+              updatedAt: p.updatedAt || new Date().toISOString(),
+            };
+          });
+
           set({ recurringPayments: mappedPayments, isLoading: false });
         } catch (error) {
           console.error('Error fetching recurring payments:', error);
@@ -225,31 +239,34 @@ export const useBudgetStore = create<BudgetState>()(
         try {
           const user = useAuthStore.getState().user;
           if (!user) throw new Error('Usuario no autenticado');
-          
+
           const response = await apiClient.post('/recurring-payments', {
             ...data,
             userId: parseInt(user.id),
           });
-          
+
+          const p = response.data;
           const newPayment = {
-            id: String(response.data.id),
-            name: response.data.name,
-            description: response.data.description,
-            amount: Number(response.data.amount),
-            frequency: response.data.frequency as RecurringFrequency,
-            nextPaymentDate: response.data.nextPaymentDate,
-            lastPaymentDate: response.data.lastPaymentDate,
-            categoryId: response.data.categoryId,
-            category: response.data.category?.name || 'Sin categoría',
-            status: response.data.status as RecurringStatus,
-            createdAt: response.data.createdAt,
-            updatedAt: response.data.updatedAt,
+            id: String(p.id),
+            name: p.name || data.name,
+            description: p.description || data.description || '',
+            amount: Number(p.amount),
+            frequency: p.frequency as RecurringFrequency,
+            nextPaymentDate: p.nextDate || p.nextPaymentDate || p.startDate || data.startDate,
+            lastPaymentDate: p.lastPaymentDate,
+            categoryId: p.categoryId || data.categoryId,
+            category: p.category?.name || data.category || 'Sin categoría',
+            status: (p.isActive !== undefined
+              ? (p.isActive ? 'ACTIVE' : 'PAUSED')
+              : p.status || data.status || 'ACTIVE') as RecurringStatus,
+            createdAt: p.createdAt || new Date().toISOString(),
+            updatedAt: p.updatedAt || new Date().toISOString(),
           };
-          
+
           set(state => ({
             recurringPayments: [newPayment, ...state.recurringPayments],
           }));
-          
+
           toast.success('Pago recurrente creado exitosamente');
         } catch (error) {
           console.error('Error adding recurring payment:', error);

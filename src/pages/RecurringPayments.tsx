@@ -83,7 +83,7 @@ const RecurringPayments = () => {
 
   const handleEdit = (payment: RecurringPayment) => {
     setEditingPayment(payment);
-    const dateValue = payment.nextPaymentDate.split('T')[0];
+    const dateValue = payment.nextPaymentDate ? payment.nextPaymentDate.split('T')[0] : new Date().toISOString().split('T')[0];
     reset({
       name: payment.name,
       description: payment.description || '',
