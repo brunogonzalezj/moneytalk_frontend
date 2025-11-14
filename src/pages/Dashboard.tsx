@@ -1,5 +1,5 @@
-import { useEffect} from 'react';
-import { ArrowUpCircle, ArrowDownCircle, TrendingUp, CalendarDays, Plus, Brain } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowUpCircle, ArrowDownCircle, TrendingUp, CalendarDays, Plus, Brain, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTransactionStore } from '../stores/transactionStore';
 import { useBudgetStore } from '../stores/budgetStore';
@@ -15,6 +15,7 @@ const Dashboard = () => {
   const { fetchBudgets, fetchRecurringPayments, getTotalBudgetAllocations, getTotalRecurringPayments, getAvailableBalance } = useBudgetStore();
   const { recommendations, isLoading: isLoadingRecommendations, fetchRecommendations } = useAIStore();
   const { user } = useAuthStore();
+  const [includeRecurringPayments, setIncludeRecurringPayments] = useState(true);
   
   useEffect(() => {
     // Solo hacer fetch si hay usuario autenticado
@@ -30,8 +31,12 @@ const Dashboard = () => {
   const { income, expense, net } = getTodaysSummary();
   const budgetAllocations = getTotalBudgetAllocations();
   const recurringPayments = getTotalRecurringPayments();
-  const availableBalance = getAvailableBalance(income, expense);
+  const availableBalance = getAvailableBalance(income, expense, includeRecurringPayments);
   const weeklyData = getWeeklyData();
+
+  const handleReloadRecommendations = async () => {
+    await fetchRecommendations(true);
+  };
 
   const chartData = {
     labels: weeklyData.labels,
@@ -104,8 +109,20 @@ const Dashboard = () => {
                 {formatCurrency(availableBalance)}
               </h3>
               <p className="text-xs text-gray-400 mt-1">
-                Después de presupuestos y pagos recurrentes
+                Después de presupuestos{includeRecurringPayments ? ' y pagos recurrentes' : ''}
               </p>
+              <div className="flex items-center mt-2">
+                <input
+                  type="checkbox"
+                  id="includeRecurring"
+                  className="toggle toggle-primary toggle-sm"
+                  checked={includeRecurringPayments}
+                  onChange={(e) => setIncludeRecurringPayments(e.target.checked)}
+                />
+                <label htmlFor="includeRecurring" className="ml-2 text-xs text-gray-500 cursor-pointer">
+                  Incluir pagos recurrentes
+                </label>
+              </div>
             </div>
             <div className={`p-3 rounded-full ${availableBalance >= 0 ? 'bg-primary-100' : 'bg-accent-100'}`}>
               <TrendingUp className={`h-6 w-6 ${availableBalance >= 0 ? 'text-primary-600' : 'text-accent-600'}`} />
@@ -160,9 +177,20 @@ const Dashboard = () => {
       
      {/* Recomendaciones de IA */}
      <div className="mb-6">
-       <div className="flex items-center mb-4">
-         <Brain className="h-6 w-6 text-primary-600 mr-2" />
-         <h2 className="text-xl font-bold text-gray-800">Recomendaciones Inteligentes</h2>
+       <div className="flex items-center justify-between mb-4">
+         <div className="flex items-center">
+           <Brain className="h-6 w-6 text-primary-600 mr-2" />
+           <h2 className="text-xl font-bold text-gray-800">Recomendaciones Inteligentes</h2>
+         </div>
+         <Button
+           variant="outline"
+           size="sm"
+           icon={<RefreshCw size={16} className={isLoadingRecommendations ? 'animate-spin' : ''} />}
+           onClick={handleReloadRecommendations}
+           disabled={isLoadingRecommendations}
+         >
+           Recargar
+         </Button>
        </div>
        
        {isLoadingRecommendations ? (

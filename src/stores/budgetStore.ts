@@ -59,7 +59,7 @@ interface BudgetState {
   // Utility methods
   getTotalBudgetAllocations: () => number;
   getTotalRecurringPayments: () => number;
-  getAvailableBalance: (totalIncome: number, totalExpenses: number) => number;
+  getAvailableBalance: (totalIncome: number, totalExpenses: number, includeRecurring?: boolean) => number;
 }
 
 export const useBudgetStore = create<BudgetState>()(
@@ -372,9 +372,9 @@ export const useBudgetStore = create<BudgetState>()(
           }, 0);
       },
 
-      getAvailableBalance: (totalIncome, totalExpenses) => {
+      getAvailableBalance: (totalIncome, totalExpenses, includeRecurring = true) => {
         const budgetAllocations = get().getTotalBudgetAllocations();
-        const recurringPayments = get().getTotalRecurringPayments();
+        const recurringPayments = includeRecurring ? get().getTotalRecurringPayments() : 0;
         return totalIncome - totalExpenses - budgetAllocations - recurringPayments;
       },
     }),
