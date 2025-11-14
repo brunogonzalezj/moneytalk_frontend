@@ -12,7 +12,7 @@ interface RecurringPaymentFormValues {
   description: string;
   amount: number;
   frequency: RecurringFrequency;
-  nextPaymentDate: string;
+  startDate: string;
   categoryId: number;
 }
 
@@ -55,7 +55,7 @@ const RecurringPayments = () => {
 
   const onSubmit = async (data: RecurringPaymentFormValues) => {
     try {
-      const dateValue = data.nextPaymentDate;
+      const dateValue = data.startDate;
       const isoDate = dateValue.includes('T')
         ? dateValue
         : new Date(dateValue + 'T00:00:00').toISOString();
@@ -63,13 +63,13 @@ const RecurringPayments = () => {
       if (editingPayment) {
         await updateRecurringPayment(editingPayment.id, {
           ...data,
-          nextPaymentDate: isoDate,
+          startDate: isoDate,
         });
         setEditingPayment(null);
       } else {
         await addRecurringPayment({
           ...data,
-          nextPaymentDate: isoDate,
+          startDate: isoDate,
           category: categories.find(c => c.id === data.categoryId)?.name || 'Sin categoría',
           status: 'ACTIVE' as RecurringStatus,
         });
@@ -89,7 +89,7 @@ const RecurringPayments = () => {
       description: payment.description || '',
       amount: payment.amount,
       frequency: payment.frequency,
-      nextPaymentDate: dateValue,
+      startDate: dateValue,
       categoryId: payment.categoryId,
     });
     setShowForm(true);
@@ -281,17 +281,17 @@ const RecurringPayments = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-medium">Próximo Pago</span>
+                  <span className="label-text font-medium">Fecha de Inicio</span>
                 </label>
                 <input
                   type="date"
-                  className={`input input-bordered w-full ${errors.nextPaymentDate ? 'input-error' : ''}`}
+                  className={`input input-bordered w-full ${errors.startDate ? 'input-error' : ''}`}
                   min={new Date().toISOString().split('T')[0]}
-                  {...register('nextPaymentDate', { required: 'La fecha del próximo pago es requerida' })}
+                  {...register('startDate', { required: 'La fecha de inicio es requerida' })}
                 />
-                {errors.nextPaymentDate && (
+                {errors.startDate && (
                   <label className="label">
-                    <span className="label-text-alt text-error">{errors.nextPaymentDate.message}</span>
+                    <span className="label-text-alt text-error">{errors.startDate.message}</span>
                   </label>
                 )}
               </div>
