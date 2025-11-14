@@ -5,6 +5,8 @@ import { useForm } from 'react-hook-form';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import formatCurrency from '../utils/formatCurrency';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 
 interface BudgetFormValues {
   name: string;
@@ -12,6 +14,13 @@ interface BudgetFormValues {
   type: BudgetType;
   targetAmount: number;
   targetDate: string;
+  categoryId: number;
+}
+
+interface Category {
+  id: number;
+  name: string;
+  type: string;
 }
 
 const Budgets = () => {
@@ -30,12 +39,30 @@ const Budgets = () => {
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [addingToBudget, setAddingToBudget] = useState<string | null>(null);
   const [addAmount, setAddAmount] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<BudgetFormValues>();
 
   useEffect(() => {
     fetchBudgets();
   }, [fetchBudgets]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoadingCategories(true);
+        const response = await axios.get('http://localhost:3000/api/categories');
+        setCategories(response.data);
+      } catch (error) {
+        console.error('Error al obtener categorías:', error);
+        toast.error('Error al cargar categorías');
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const onSubmit = async (data: BudgetFormValues) => {
     try {
@@ -78,6 +105,7 @@ const Budgets = () => {
       type: budget.type,
       targetAmount: budget.targetAmount,
       targetDate: dateValue,
+      categoryId: 1,
     });
     setShowForm(true);
   };
@@ -222,6 +250,34 @@ const Budgets = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="form-control">
                 <label className="label">
+                  <span className="label-text font-medium">Categoría</span>
+                </label>
+                <select
+                  className={`select select-bordered w-full ${errors.categoryId ? 'select-error' : ''}`}
+                  {...register('categoryId', {
+                    required: 'La categoría es requerida',
+                    valueAsNumber: true
+                  })}
+                  disabled={loadingCategories}
+                >
+                  <option value="">
+                    {loadingCategories ? 'Cargando categorías...' : 'Selecciona una categoría'}
+                  </option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name} ({cat.type === 'INCOME' ? 'Ingreso' : 'Gasto'})
+                    </option>
+                  ))}
+                </select>
+                {errors.categoryId && (
+                  <label className="label">
+                    <span className="label-text-alt text-error">{errors.categoryId.message}</span>
+                  </label>
+                )}
+              </div>
+
+              <div className="form-control">
+                <label className="label">
                   <span className="label-text font-medium">Monto Objetivo</span>
                 </label>
                 <div className="relative">
@@ -231,7 +287,7 @@ const Budgets = () => {
                     step="0.01"
                     placeholder="0.00"
                     className={`input input-bordered w-full pl-8 ${errors.targetAmount ? 'input-error' : ''}`}
-                    {...register('targetAmount', { 
+                    {...register('targetAmount', {
                       required: 'El monto objetivo es requerido',
                       min: { value: 0.01, message: 'El monto debe ser mayor a 0' }
                     })}
@@ -243,18 +299,23 @@ const Budgets = () => {
                   </label>
                 )}
               </div>
+            </div>
 
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium">Fecha Objetivo (Opcional)</span>
-                </label>
-                <input
-                  type="date"
-                  className="input input-bordered w-full"
-                  min={new Date().toISOString().split('T')[0]}
-                  {...register('targetDate')}
-                />
-              </div>
+            <div className="form-control mb-4">
+              <label className="label">
+                <span className="label-text font-medium">Fecha Objetivo (Opcional)</span>
+              </label>
+              <input
+                type="date"
+                className="input input-bordered w-full"
+                min={new Date().toISOString().split('T')[0]}
+                {...register('targetDate')}
+              />
+              <label className="label">
+                <span className="label-text-alt text-gray-500">
+                  Si no especificas una fecha, se establecerá automáticamente a 1 año
+                </span>
+              </label>
             </div>
 
             <div className="form-control mb-6">
