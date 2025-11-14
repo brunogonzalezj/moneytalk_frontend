@@ -121,11 +121,16 @@ const RecurringPayments = () => {
   };
 
   const getNextPaymentDays = (nextPaymentDate: string) => {
+    if (!nextPaymentDate) return 'Sin fecha';
+
     const now = new Date();
     const next = new Date(nextPaymentDate);
+
+    if (isNaN(next.getTime())) return 'Fecha inválida';
+
     const diffTime = next.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return 'Vencido';
     if (diffDays === 0) return 'Hoy';
     if (diffDays === 1) return 'Mañana';
@@ -384,7 +389,9 @@ const RecurringPayments = () => {
                 <span className="text-sm text-gray-600">Próximo Pago</span>
                 <div className="text-right">
                   <div className="text-sm font-medium">
-                    {new Date(payment.nextPaymentDate).toLocaleDateString('es-ES')}
+                    {payment.nextPaymentDate && !isNaN(new Date(payment.nextPaymentDate).getTime())
+                      ? new Date(payment.nextPaymentDate).toLocaleDateString('es-ES')
+                      : 'Fecha no disponible'}
                   </div>
                   <div className="text-xs text-gray-500">
                     {getNextPaymentDays(payment.nextPaymentDate)}

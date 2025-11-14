@@ -197,10 +197,13 @@ export const useBudgetStore = create<BudgetState>()(
           }
 
           const response = await apiClient.get('/recurring-payments');
+          console.log('🔍 Raw API Response:', response.data);
 
           const data = Array.isArray(response.data) ? response.data : [];
 
           const mappedPayments = data.map((p: any) => {
+            console.log('🔍 Processing payment:', p);
+
             const statusMap: Record<string, RecurringStatus> = {
               'true': 'ACTIVE',
               'false': 'PAUSED',
@@ -209,24 +212,30 @@ export const useBudgetStore = create<BudgetState>()(
               'CANCELLED': 'CANCELLED'
             };
 
-            return {
+            const mappedStatus = p.isActive !== undefined
+              ? (p.isActive ? 'ACTIVE' : 'PAUSED')
+              : statusMap[String(p.status)] || 'ACTIVE';
+
+            const mapped = {
               id: String(p.id),
               name: p.name || '',
               description: p.description || '',
               amount: Number(p.amount),
               frequency: p.frequency as RecurringFrequency,
               nextPaymentDate: p.nextDate || p.nextPaymentDate || p.startDate || new Date().toISOString(),
-              lastPaymentDate: p.lastPaymentDate,
+              lastPaymentDate: p.lastPaymentDate || null,
               categoryId: p.categoryId,
               category: p.category?.name || 'Sin categoría',
-              status: (p.isActive !== undefined
-                ? (p.isActive ? 'ACTIVE' : 'PAUSED')
-                : statusMap[String(p.status)] || 'ACTIVE') as RecurringStatus,
+              status: mappedStatus as RecurringStatus,
               createdAt: p.createdAt || new Date().toISOString(),
               updatedAt: p.updatedAt || new Date().toISOString(),
             };
+
+            console.log('✅ Mapped payment:', mapped);
+            return mapped;
           });
 
+          console.log('✅ Final mapped payments:', mappedPayments);
           set({ recurringPayments: mappedPayments, isLoading: false });
         } catch (error) {
           console.error('Error fetching recurring payments:', error);
