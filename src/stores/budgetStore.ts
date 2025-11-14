@@ -199,32 +199,27 @@ export const useBudgetStore = create<BudgetState>()(
           const response = await apiClient.get('/recurring-payments');
           console.log('🔍 Raw API Response:', response.data);
 
-          const data = Array.isArray(response.data) ? response.data : [];
+          const rawData = response.data?.recurringPayments || response.data;
+          const data = Array.isArray(rawData) ? rawData : [];
+
+          console.log('🔍 Data to process:', data);
 
           const mappedPayments = data.map((p: any) => {
             console.log('🔍 Processing payment:', p);
 
-            const statusMap: Record<string, RecurringStatus> = {
-              'true': 'ACTIVE',
-              'false': 'PAUSED',
-              'ACTIVE': 'ACTIVE',
-              'PAUSED': 'PAUSED',
-              'CANCELLED': 'CANCELLED'
-            };
-
             const mappedStatus = p.isActive !== undefined
               ? (p.isActive ? 'ACTIVE' : 'PAUSED')
-              : statusMap[String(p.status)] || 'ACTIVE';
+              : (p.status || 'ACTIVE');
 
             const mapped = {
               id: String(p.id),
-              name: p.name || '',
+              name: p.name || 'Sin nombre',
               description: p.description || '',
-              amount: Number(p.amount),
-              frequency: p.frequency as RecurringFrequency,
+              amount: Number(p.amount || 0),
+              frequency: (p.frequency || 'MONTHLY') as RecurringFrequency,
               nextPaymentDate: p.nextDate || p.nextPaymentDate || p.startDate || new Date().toISOString(),
               lastPaymentDate: p.lastPaymentDate || null,
-              categoryId: p.categoryId,
+              categoryId: p.categoryId || p.category?.id || 0,
               category: p.category?.name || 'Sin categoría',
               status: mappedStatus as RecurringStatus,
               createdAt: p.createdAt || new Date().toISOString(),
@@ -254,23 +249,27 @@ export const useBudgetStore = create<BudgetState>()(
             userId: parseInt(user.id),
           });
 
+          console.log('🔍 Create response:', response.data);
+
           const p = response.data;
           const newPayment = {
             id: String(p.id),
-            name: p.name || data.name,
+            name: p.name || data.name || 'Sin nombre',
             description: p.description || data.description || '',
-            amount: Number(p.amount),
-            frequency: p.frequency as RecurringFrequency,
+            amount: Number(p.amount || data.amount),
+            frequency: (p.frequency || data.frequency) as RecurringFrequency,
             nextPaymentDate: p.nextDate || p.nextPaymentDate || p.startDate || data.startDate,
-            lastPaymentDate: p.lastPaymentDate,
+            lastPaymentDate: p.lastPaymentDate || null,
             categoryId: p.categoryId || data.categoryId,
-            category: p.category?.name || data.category || 'Sin categoría',
+            category: p.category?.name || 'Sin categoría',
             status: (p.isActive !== undefined
               ? (p.isActive ? 'ACTIVE' : 'PAUSED')
-              : p.status || data.status || 'ACTIVE') as RecurringStatus,
+              : 'ACTIVE') as RecurringStatus,
             createdAt: p.createdAt || new Date().toISOString(),
             updatedAt: p.updatedAt || new Date().toISOString(),
           };
+
+          console.log('✅ Mapped new payment:', newPayment);
 
           set(state => ({
             recurringPayments: [newPayment, ...state.recurringPayments],
