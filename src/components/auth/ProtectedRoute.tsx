@@ -1,3 +1,4 @@
+import { ReactElement } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { WifiOff } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
@@ -5,7 +6,7 @@ import { useTransactionStore } from '../../stores/transactionStore';
 import useOfflineDetection from '../../hooks/useOfflineDetection';
 
 interface ProtectedRouteProps {
-  children: JSX.Element;
+  children: ReactElement;
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {

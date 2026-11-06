@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface SpeechRecognitionEventLike {
   resultIndex: number;
@@ -19,10 +19,23 @@ const SPEECH_ERRORS: Record<string, string> = {
   aborted: 'Se canceló la grabación.',
 };
 
+// The slice of the Web Speech API this hook uses
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onspeechend: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
 declare global {
   interface Window {
-    SpeechRecognition?: new () => any;
-    webkitSpeechRecognition?: new () => any;
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
   }
 }
 
@@ -35,87 +48,71 @@ interface SpeechRecognitionResult {
   resetTranscript: () => void;
 }
 
+const UNSUPPORTED_MESSAGE = 'Tu navegador no permite el reconocimiento de voz. Prueba con Chrome o Edge, o escribe la transacción.';
+
+const getRecognitionClass = () =>
+  typeof window === 'undefined' ? undefined : window.SpeechRecognition ?? window.webkitSpeechRecognition;
+
 export const useSpeechRecognition = (): SpeechRecognitionResult => {
   const [transcript, setTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [recognition, setRecognition] = useState<any>(null);
+  const [recognitionError, setRecognitionError] = useState<string | null>(null);
+  const recognition = useRef<SpeechRecognitionLike | null>(null);
+  const isSupported = Boolean(getRecognitionClass());
+  const error = isSupported ? recognitionError : UNSUPPORTED_MESSAGE;
 
-  // Initialize speech recognition
   useEffect(() => {
-    // Check if browser supports SpeechRecognition
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-      setError('Tu navegador no permite el reconocimiento de voz. Prueba con Chrome o Edge, o escribe la transacción.');
-      return;
-    }
+    const SpeechRecognition = getRecognitionClass();
+    if (!SpeechRecognition) return;
 
-    const recognitionInstance = new SpeechRecognition();
-    recognitionInstance.continuous = false;
-    recognitionInstance.interimResults = true;
-    recognitionInstance.lang = 'es-MX';
+    const instance = new SpeechRecognition();
+    instance.continuous = false;
+    instance.interimResults = true;
+    instance.lang = 'es-MX';
 
-    recognitionInstance.onresult = (event: SpeechRecognitionEventLike) => {
+    instance.onresult = (event) => {
       let finalTranscript = '';
-      
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        }
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
       }
-      
-      if (finalTranscript) {
-        setTranscript(prevTranscript => prevTranscript + ' ' + finalTranscript);
-      }
+      if (finalTranscript) setTranscript((previous) => `${previous} ${finalTranscript}`);
     };
 
-    recognitionInstance.onerror = (event: SpeechRecognitionErrorEventLike) => {
-      setError(SPEECH_ERRORS[event.error] ?? 'No se pudo reconocer la voz. Intenta de nuevo.');
+    instance.onerror = (event) => {
+      setRecognitionError(SPEECH_ERRORS[event.error] ?? 'No se pudo reconocer la voz. Intenta de nuevo.');
       setIsListening(false);
     };
 
-    recognitionInstance.onspeechend = () => {
-      recognitionInstance.stop();
-        setIsListening(false);
-    }
-
-    recognitionInstance.onend = () => {
+    instance.onspeechend = () => {
+      instance.stop();
       setIsListening(false);
     };
 
-    setRecognition(recognitionInstance);
+    instance.onend = () => setIsListening(false);
 
-    // Cleanup on unmount
+    recognition.current = instance;
     return () => {
-      if (recognitionInstance) {
-        recognitionInstance.stop();
-      }
+      instance.stop();
+      recognition.current = null;
     };
   }, []);
 
   const startListening = useCallback(() => {
-    if (!recognition) return;
-    
-    setError(null);
+    if (!recognition.current) return;
+    setRecognitionError(null);
     setIsListening(true);
-    
+    setTranscript('');
     try {
-      recognition.start();
-        setTranscript(''); // Clear previous transcript
-
+      recognition.current.start();
     } catch {
       // start() throws if recognition is already running; nothing to do
     }
-  }, [recognition]);
+  }, []);
 
   const stopListening = useCallback(() => {
-    if (!recognition) return;
-    
-    recognition.stop();
+    recognition.current?.stop();
     setIsListening(false);
-  }, [recognition]);
+  }, []);
 
   const resetTranscript = useCallback(() => {
     setTranscript('');

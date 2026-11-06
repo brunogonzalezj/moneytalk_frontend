@@ -16,7 +16,7 @@ interface UseNotificationsReturn {
 }
 
 // VAPID public key (base64url) as the bytes PushManager expects
-const toApplicationServerKey = (base64Url: string): Uint8Array => {
+const toApplicationServerKey = (base64Url: string): Uint8Array<ArrayBuffer> => {
   const base64 = (base64Url + '='.repeat((4 - (base64Url.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/');
   return Uint8Array.from(window.atob(base64), (char) => char.charCodeAt(0));
 };
@@ -81,7 +81,7 @@ export const useNotifications = (): UseNotificationsReturn => {
       // toJSON() gives the endpoint and the keys as base64url strings
       await notificationsApi.subscribe(subscription.toJSON(), settings);
     } catch (error) {
-      throw new Error(getErrorMessage(error, 'No se pudo guardar la suscripción'));
+      throw new Error(getErrorMessage(error, 'No se pudo guardar la suscripción'), { cause: error });
     }
     setIsSubscribed(true);
   }, [isSupported]);

@@ -9,9 +9,28 @@ interface GoogleSignInProps {
   onSuccess?: () => void;
 }
 
+// The slice of Google Identity Services this component uses
+interface GoogleCredentialResponse {
+  credential: string;
+}
+
+interface GoogleIdentity {
+  accounts: {
+    id: {
+      initialize: (config: {
+        client_id: string;
+        callback: (response: GoogleCredentialResponse) => void;
+        auto_select?: boolean;
+        cancel_on_tap_outside?: boolean;
+      }) => void;
+      renderButton: (element: HTMLElement, options: Record<string, unknown>) => void;
+    };
+  };
+}
+
 declare global {
   interface Window {
-    google: any;
+    google?: GoogleIdentity;
   }
 }
 
@@ -60,7 +79,7 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({
       }
     };
 
-    const handleGoogleResponse = async (response: any) => {
+    const handleGoogleResponse = async (response: GoogleCredentialResponse) => {
       try {
         // response.credential contiene el ID token de Google
         await loginWithGoogle(response.credential);

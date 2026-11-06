@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import type { Chart, ChartOptions, TooltipItem } from 'chart.js';
 import { es } from 'date-fns/locale';
 import { CalendarRange, FileBarChart, RefreshCw } from 'lucide-react';
 import { summaryKey, useTransactionStore } from '../stores/transactionStore';
@@ -70,7 +71,7 @@ const Reports = () => {
   };
   
   // Opciones específicas para el gráfico de pie
-  const pieChartOptions = {
+  const pieChartOptions: ChartOptions<'pie'> = {
     plugins: {
       legend: {
         position: 'bottom' as const,
@@ -80,23 +81,20 @@ const Reports = () => {
           font: {
             size: 12,
           },
-          generateLabels: function(chart: any) {
-            const data = chart.data;
-            if (data.labels.length && data.datasets.length) {
-              const dataset = data.datasets[0];
-              const total = dataset.data.reduce((a: number, b: number) => a + b, 0);
-              return data.labels.map((label: string, i: number) => {
-                const value = dataset.data[i];
-                const percentage = ((value / total) * 100).toFixed(1);
-                return {
-                  text: `${label}: ${percentage}%`,
-                  fillStyle: dataset.backgroundColor[i],
-                  hidden: false,
-                  index: i
-                };
-              });
-            }
-            return [];
+          generateLabels: function(chart: Chart) {
+            const labels = (chart.data.labels ?? []) as string[];
+            const dataset = chart.data.datasets[0];
+            if (!labels.length || !dataset) return [];
+            // This legend belongs to the pie chart, whose data is plain numbers
+            const values = dataset.data as number[];
+            const colors = (dataset.backgroundColor ?? []) as string[];
+            const total = values.reduce((sum, value) => sum + value, 0);
+            return labels.map((label, i) => ({
+              text: `${label}: ${total > 0 ? ((values[i] / total) * 100).toFixed(1) : '0.0'}%`,
+              fillStyle: colors[i],
+              hidden: false,
+              index: i,
+            }));
           }
         }
       },
@@ -109,7 +107,7 @@ const Reports = () => {
         padding: 12,
         displayColors: true,
         callbacks: {
-          label: function(context: any) {
+          label: function(context: TooltipItem<'pie'>) {
             const label = context.label || '';
             const value = context.parsed || 0;
             const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
@@ -347,12 +345,12 @@ const Reports = () => {
                 borderWidth: 1,
                 padding: 12,
                 callbacks: {
-                  label: function(context: any) {
+                  label: function(context: TooltipItem<'bar'>) {
                     let label = context.dataset.label || '';
                     if (label) {
                       label += ': ';
                     }
-                    label += formatCurrency(context.parsed.y);
+                    label += formatCurrency(context.parsed.y ?? 0);
                     return label;
                   }
                 }

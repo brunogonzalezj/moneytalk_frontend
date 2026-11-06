@@ -4,37 +4,41 @@ import { Bell, Download, User, LogOut, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import Button from '../ui/Button';
 
+// Chrome's install prompt event (not in the DOM typings yet)
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+const PAGE_TITLES: Record<string, string> = {
+  dashboard: 'Panel Principal',
+  transactions: 'Transacciones',
+  new: 'Nueva Transacción',
+  reports: 'Reportes',
+  budgets: 'Presupuestos',
+  'recurring-payments': 'Pagos Recurrentes',
+  manual: 'Manual',
+  profile: 'Perfil',
+};
+
+const titleFor = (pathname: string) => {
+  const last = pathname.split('/').filter(Boolean).pop();
+  if (!last) return 'Panel Principal';
+  return PAGE_TITLES[last] ?? last.charAt(0).toUpperCase() + last.slice(1);
+};
+
 const Header = () => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const location = useLocation();
   const navigate = useNavigate();
-  const [pageTitle, setPageTitle] = useState('Panel Principal');
+  const pageTitle = titleFor(location.pathname);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const pathSegments = location.pathname.split('/').filter(Boolean);
-    if (pathSegments.length === 0) {
-      setPageTitle('Panel Principal');
-    } else {
-      const titles: { [key: string]: string } = {
-        'dashboard': 'Panel Principal',
-        'transactions': 'Transacciones',
-        'new': 'Nueva Transacción',
-        'reports': 'Reportes',
-        'budgets': 'Presupuestos',
-        'recurring-payments': 'Pagos Recurrentes',
-        'manual': 'Manual',
-        'profile': 'Perfil'
-      };
-      const title = pathSegments[pathSegments.length - 1];
-      setPageTitle(titles[title] || title.charAt(0).toUpperCase() + title.slice(1));
-    }
-  }, [location]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -46,11 +50,11 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: any) => {
+    const handleBeforeInstallPrompt = (e: Event) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       setShowInstallButton(true);
     };
 

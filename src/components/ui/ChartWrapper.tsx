@@ -36,8 +36,8 @@ type ChartType = 'line' | 'bar' | 'pie';
 
 interface ChartWrapperProps {
   type: ChartType;
-  data: ChartData<any>;
-  options?: ChartOptions<any>;
+  data: ChartData<'line'> | ChartData<'bar'> | ChartData<'pie'>;
+  options?: ChartOptions<'line'> | ChartOptions<'bar'> | ChartOptions<'pie'>;
   title?: string;
   subtitle?: string;
   height?: number;
@@ -54,7 +54,7 @@ const ChartWrapper: React.FC<ChartWrapperProps> = ({
   className = '',
 }) => {
   // Default options
-  const defaultOptions: ChartOptions<any> = {
+  const defaultOptions: ChartOptions<ChartType> = {
     responsive: true,
     maintainAspectRatio: false,
     elements: {
@@ -98,22 +98,19 @@ const ChartWrapper: React.FC<ChartWrapperProps> = ({
         usePointStyle: true,
         callbacks: {
           // Format currency for tooltips
-          label: function(context: TooltipItem<any>) {
+          label: function(context: TooltipItem<ChartType>) {
             let label = context.dataset.label || '';
             if (label) {
               label += ': ';
             }
-            if (context.parsed.y !== null) {
-              // Use the formatCurrency utility function
-              const value = typeof context.parsed === 'number' ? context.parsed :
-                           typeof context.parsed.y === 'number' ? context.parsed.y :
-                           context.parsed;
-              label += new Intl.NumberFormat('es-BO', {
-                style: 'currency',
-                currency: 'BOB',
-                minimumFractionDigits: 2,
-              }).format(Number(value) || 0);
-            }
+            // Pie charts parse to a number; line and bar charts to { x, y }
+            const parsed = context.parsed as number | { y: number | null } | null;
+            const value = typeof parsed === 'number' ? parsed : parsed?.y ?? 0;
+            label += new Intl.NumberFormat('es-BO', {
+              style: 'currency',
+              currency: 'BOB',
+              minimumFractionDigits: 2,
+            }).format(value);
             return label;
           }
         }
@@ -155,13 +152,13 @@ const ChartWrapper: React.FC<ChartWrapperProps> = ({
   const renderChart = () => {
     switch (type) {
       case 'line':
-        return <Line data={data} options={mergedOptions} height={height} />;
+        return <Line data={data as ChartData<'line'>} options={mergedOptions as ChartOptions<'line'>} height={height} />;
       case 'bar':
-        return <Bar data={data} options={mergedOptions} height={height} />;
+        return <Bar data={data as ChartData<'bar'>} options={mergedOptions as ChartOptions<'bar'>} height={height} />;
       case 'pie':
-        return <Pie data={data} options={mergedOptions} height={height} />;
+        return <Pie data={data as ChartData<'pie'>} options={mergedOptions as ChartOptions<'pie'>} height={height} />;
       default:
-        return <Line data={data} options={mergedOptions} height={height} />;
+        return <Line data={data as ChartData<'line'>} options={mergedOptions as ChartOptions<'line'>} height={height} />;
     }
   };
 

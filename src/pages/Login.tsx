@@ -21,7 +21,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const from = (location.state as any)?.from?.pathname || '/dashboard';
+  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || '/dashboard';
   
   const { 
     register, 

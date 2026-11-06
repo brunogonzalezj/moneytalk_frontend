@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { Transaction } from '../../types/domain';
@@ -11,20 +11,12 @@ type Props = {
 };
 
 const EditTransactionModal = ({ transaction, onClose, onSubmit }: Props) => {
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState('');
+  // The parent remounts this modal (key) for each transaction, so props seed the state
+  const [description, setDescription] = useState(transaction?.description ?? '');
+  const [amount, setAmount] = useState(transaction ? String(transaction.amount) : '');
+  const [date, setDate] = useState(transaction?.date.slice(0, 10) ?? '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (transaction) {
-      setDescription(transaction.description);
-      setAmount(String(transaction.amount));
-      setDate(transaction.date.slice(0, 10));
-      setError('');
-    }
-  }, [transaction]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

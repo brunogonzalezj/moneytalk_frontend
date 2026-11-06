@@ -352,6 +352,7 @@ const Transactions = () => {
       />
 
       <EditTransactionModal
+        key={editingTransaction?.id ?? 'none'}
         transaction={editingTransaction}
         onClose={() => setEditingTransaction(null)}
         onSubmit={updateTransaction}
