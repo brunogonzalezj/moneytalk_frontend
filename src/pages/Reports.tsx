@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { CalendarRange, FileBarChart, RefreshCw } from 'lucide-react';
-import { useTransactionStore, Transaction } from '../stores/transactionStore';
+import { summaryKey, useTransactionStore } from '../stores/transactionStore';
+import { addDaysIso, formatShortDate, parseIsoDate, presetRange, todayIso } from '../utils/date';
 import ChartWrapper from '../components/ui/ChartWrapper';
 import Card from '../components/ui/Card';
 import StatCard from '../components/ui/StatCard';
@@ -10,83 +13,38 @@ import formatCurrency from '../utils/formatCurrency';
 type DateRange = 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'custom';
 
 const Reports = () => {
-  const { transactions, fetchAllTransactionsForCalculations } = useTransactionStore();
+  const fetchSummary = useTransactionStore((state) => state.fetchSummary);
   const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
   const [customRange, setCustomRange] = useState({ from: '', to: '' });
-  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
+  // Inclusive calendar range; a custom range without start covers the last 10 years
+  const { from, to } = useMemo(() => {
+    if (dateRange !== 'custom') return presetRange(dateRange);
+    const end = customRange.to || todayIso();
+    return { from: customRange.from || addDaysIso(end, -3650), to: end };
+  }, [dateRange, customRange]);
+
+  const summary = useTransactionStore((state) => state.summaries[summaryKey(from, to, 'month')]);
+  const isInvalidRange = from > to;
+
   useEffect(() => {
-    fetchAllTransactionsForCalculations();
-  }, [fetchAllTransactionsForCalculations]);
-  
-  useEffect(() => {
-    const now = new Date();
-    let fromDate: Date;
-    let toDate: Date = new Date(now);
-    
-    switch (dateRange) {
-      case 'last7days':
-        fromDate = new Date(now);
-        fromDate.setDate(fromDate.getDate() - 7);
-        break;
-        
-      case 'last30days':
-        fromDate = new Date(now);
-        fromDate.setDate(fromDate.getDate() - 30);
-        break;
-        
-      case 'thisMonth':
-        fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        break;
-        
-      case 'lastMonth':
-        fromDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        toDate = new Date(now.getFullYear(), now.getMonth(), 0);
-        break;
-        
-      case 'thisYear':
-        fromDate = new Date(now.getFullYear(), 0, 1);
-        toDate = new Date(now.getFullYear(), 11, 31);
-        break;
-        
-      case 'custom':
-        fromDate = customRange.from ? new Date(customRange.from) : new Date(0);
-        toDate = customRange.to ? new Date(customRange.to) : new Date();
-        break;
-        
-      default:
-        fromDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-    }
-    
-    const filtered = transactions.filter(transaction => {
-      const transactionDate = new Date(transaction.date);
-      return transactionDate >= fromDate && transactionDate <= toDate;
-    });
-    
-    setFilteredTransactions(filtered);
-  }, [dateRange, customRange, transactions]);
-  
-  const totalIncome = filteredTransactions
-    .filter(t => t.type === 'INCOME')
-    .reduce((sum, t) => sum + t.amount, 0);
-    
-  const totalExpenses = filteredTransactions
-    .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + t.amount, 0);
-    
-  const netCashflow = totalIncome - totalExpenses;
-  
-  const expensesByCategory = filteredTransactions
-    .filter(t => t.type === 'EXPENSE')
-    .reduce((acc, transaction) => {
-      const { category, amount } = transaction;
-      acc[category] = (acc[category] || 0) + amount;
-      return acc;
-    }, {} as Record<string, number>);
-    
+    if (!isInvalidRange) void fetchSummary(from, to, 'month');
+  }, [fetchSummary, from, to, isInvalidRange, summary]);
+
+  const totalIncome = summary?.totals.income ?? 0;
+  const totalExpenses = summary?.totals.expense ?? 0;
+  const netCashflow = summary?.totals.balance ?? 0;
+
+  // Already sorted by total on the server
+  const expensesByCategory = useMemo(
+    () =>
+      Object.fromEntries(
+        (summary?.byCategory ?? []).filter((c) => c.type === 'EXPENSE').map((c) => [c.name, c.total])
+      ) as Record<string, number>,
+    [summary]
+  );
+
   const pieChartData = {
     labels: Object.keys(expensesByCategory),
     datasets: [
@@ -169,38 +127,15 @@ const Reports = () => {
     maintainAspectRatio: false
   };
 
-  const getMonthlyData = () => {
-    const monthlyData: Record<string, { income: number; expense: number }> = {};
-    
-    filteredTransactions.forEach(transaction => {
-      const date = new Date(transaction.date);
-      const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      
-      if (!monthlyData[monthYear]) {
-        monthlyData[monthYear] = { income: 0, expense: 0 };
-      }
-      
-      if (transaction.type === 'INCOME') {
-        monthlyData[monthYear].income += transaction.amount;
-      } else {
-        monthlyData[monthYear].expense += transaction.amount;
-      }
-    });
-    
-    const sortedMonths = Object.keys(monthlyData).sort();
-    
+  const monthlyData = useMemo(() => {
+    // Months without movements are left out, as before
+    const months = (summary?.series ?? []).filter((point) => point.income > 0 || point.expense > 0);
     return {
-      labels: sortedMonths.map(monthYear => {
-        const [year, month] = monthYear.split('-');
-        const date = new Date(parseInt(year), parseInt(month) - 1);
-        return date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-      }),
-      incomeData: sortedMonths.map(month => monthlyData[month].income),
-      expenseData: sortedMonths.map(month => monthlyData[month].expense),
+      labels: months.map((point) => format(parseIsoDate(point.period), 'MMM yyyy', { locale: es })),
+      incomeData: months.map((point) => point.income),
+      expenseData: months.map((point) => point.expense),
     };
-  };
-  
-  const monthlyData = getMonthlyData();
+  }, [summary]);
   
   const barChartData = {
     labels: monthlyData.labels,
@@ -226,45 +161,29 @@ const Reports = () => {
   
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchAllTransactionsForCalculations();
+    // Drops cached aggregates so the effect above refetches this range
+    useTransactionStore.setState({ summaries: {} });
+    await fetchSummary(from, to, 'month');
     setIsRefreshing(false);
   };
   
   const formatDateRange = () => {
-    const now = new Date();
-    
+    const thisMonth = presetRange('thisMonth');
     switch (dateRange) {
-      case 'last7days':
-        const sevenDaysAgo = new Date(now);
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        return `${formatDate(sevenDaysAgo)} - ${formatDate(now)}`;
-        
-      case 'last30days':
-        const thirtyDaysAgo = new Date(now);
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        return `${formatDate(thirtyDaysAgo)} - ${formatDate(now)}`;
-        
       case 'thisMonth':
-        return new Date().toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-        
+        return format(parseIsoDate(thisMonth.from), 'MMMM yyyy', { locale: es });
       case 'lastMonth':
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        return lastMonth.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-        
+        return format(parseIsoDate(from), 'MMMM yyyy', { locale: es });
       case 'thisYear':
-        return new Date().getFullYear().toString();
-        
+        return from.slice(0, 4);
       case 'custom':
-        if (customRange.from && customRange.to) {
-          return `${formatDate(new Date(customRange.from))} - ${formatDate(new Date(customRange.to))}`;
-        }
-        return 'Rango Personalizado';
-        
+        if (!customRange.from && !customRange.to) return 'Rango personalizado';
+        return `${formatShortDate(from, true)} - ${formatShortDate(to, true)}`;
       default:
-        return '';
+        return `${formatShortDate(from, true)} - ${formatShortDate(to, true)}`;
     }
   };
-  
+
   return (
     <div className="animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -508,14 +427,6 @@ const Reports = () => {
       </Card>
     </div>
   );
-};
-
-const formatDate = (date: Date) => {
-  return new Intl.DateTimeFormat('es-ES', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(date);
 };
 
 export default Reports;

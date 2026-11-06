@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Plus, Target, Calendar, TrendingUp, Edit, Trash2, PiggyBank } from 'lucide-react';
 import { useBudgetStore, Budget, BudgetType, BudgetStatus } from '../stores/budgetStore';
 import { useForm } from 'react-hook-form';
@@ -17,16 +18,19 @@ interface BudgetFormValues {
 
 
 const Budgets = () => {
-  const { 
-    budgets, 
-    isLoading, 
-    fetchBudgets, 
-    addBudget, 
-    updateBudget, 
-    deleteBudget,
-    addToBudget,
-    getTotalBudgetAllocations 
-  } = useBudgetStore();
+  const { budgets, isLoading, fetchBudgets, addBudget, updateBudget, deleteBudget, addToBudget, getTotalBudgetAllocations } =
+    useBudgetStore(
+      useShallow((state) => ({
+        budgets: state.budgets,
+        isLoading: state.isLoadingBudgets,
+        fetchBudgets: state.fetchBudgets,
+        addBudget: state.addBudget,
+        updateBudget: state.updateBudget,
+        deleteBudget: state.deleteBudget,
+        addToBudget: state.addToBudget,
+        getTotalBudgetAllocations: state.getTotalBudgetAllocations,
+      }))
+    );
   
   const [showForm, setShowForm] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
@@ -40,34 +44,25 @@ const Budgets = () => {
   }, [fetchBudgets]);
 
   const onSubmit = async (data: BudgetFormValues) => {
+    const budgetData = {
+      name: data.name,
+      description: data.description,
+      type: data.type,
+      targetAmount: Number(data.targetAmount),
+      // Calendar date as entered (YYYY-MM-DD)
+      ...(data.targetDate && { targetDate: data.targetDate }),
+    };
     try {
-      const budgetData: any = {
-        name: data.name,
-        description: data.description,
-        type: data.type,
-        targetAmount: data.targetAmount,
-      };
-
-      if (data.targetDate) {
-        const dateValue = data.targetDate;
-        budgetData.targetDate = dateValue.includes('T')
-          ? dateValue
-          : new Date(dateValue + 'T00:00:00').toISOString();
-      }
-
       if (editingBudget) {
         await updateBudget(editingBudget.id, budgetData);
         setEditingBudget(null);
       } else {
-        await addBudget({
-          ...budgetData,
-          status: 'ACTIVE' as BudgetStatus,
-        });
+        await addBudget(budgetData);
       }
       reset();
       setShowForm(false);
-    } catch (error) {
-      console.error('Error saving budget:', error);
+    } catch {
+      // The store already showed the error; the form stays open to retry
     }
   };
 
@@ -86,16 +81,19 @@ const Budgets = () => {
 
   const handleDelete = (id: string) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este presupuesto?')) {
-      deleteBudget(id);
+      deleteBudget(id).catch(() => undefined);
     }
   };
 
   const handleAddToBudget = async (budgetId: string) => {
     const amount = parseFloat(addAmount);
-    if (amount > 0) {
+    if (!(amount > 0)) return;
+    try {
       await addToBudget(budgetId, amount);
       setAddingToBudget(null);
       setAddAmount('');
+    } catch {
+      // The store already showed the error
     }
   };
 

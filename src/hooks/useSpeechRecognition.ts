@@ -9,6 +9,16 @@ interface SpeechRecognitionErrorEventLike {
   error: string;
 }
 
+// Messages for the error codes of the Web Speech API
+const SPEECH_ERRORS: Record<string, string> = {
+  'no-speech': 'No se detectó voz. Habla cerca del micrófono e intenta de nuevo.',
+  'audio-capture': 'No se encontró un micrófono disponible.',
+  'not-allowed': 'Permite el acceso al micrófono para usar la entrada por voz.',
+  'service-not-allowed': 'Permite el acceso al micrófono para usar la entrada por voz.',
+  network: 'El reconocimiento de voz necesita conexión a internet.',
+  aborted: 'Se canceló la grabación.',
+};
+
 declare global {
   interface Window {
     SpeechRecognition?: new () => any;
@@ -37,7 +47,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
-      setError('Speech recognition is not supported in this browser.');
+      setError('Tu navegador no permite el reconocimiento de voz. Prueba con Chrome o Edge, o escribe la transacción.');
       return;
     }
 
@@ -62,7 +72,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     };
 
     recognitionInstance.onerror = (event: SpeechRecognitionErrorEventLike) => {
-      setError(`Speech recognition error: ${event.error}`);
+      setError(SPEECH_ERRORS[event.error] ?? 'No se pudo reconocer la voz. Intenta de nuevo.');
       setIsListening(false);
     };
 
@@ -95,9 +105,8 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
       recognition.start();
         setTranscript(''); // Clear previous transcript
 
-    } catch (err) {
-      // Sometimes start() can throw if already started
-      console.error('Speech recognition start error:', err);
+    } catch {
+      // start() throws if recognition is already running; nothing to do
     }
   }, [recognition]);
 

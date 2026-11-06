@@ -34,8 +34,7 @@ const ExportDataModal = ({ isOpen, onClose, initialFrom = '', initialTo = '', on
     try {
       await onSubmit({ fromDate, toDate, format });
       onClose();
-    } catch (err) {
-      console.error(err);
+    } catch {
       setError('No se pudo exportar. Intenta nuevamente.');
     } finally {
       setIsSubmitting(false);

@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { ArrowUpCircle, ArrowDownCircle, TrendingUp, CalendarDays, Plus, Brain, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useTransactionStore } from '../stores/transactionStore';
+import { summaryKey, useTransactionStore } from '../stores/transactionStore';
+import { addDaysIso, formatShortDate, todayIso } from '../utils/date';
 import { useBudgetStore } from '../stores/budgetStore';
 import { useAIStore } from '../stores/aiStore';
 import ChartWrapper from '../components/ui/ChartWrapper';
@@ -12,29 +14,63 @@ import Button from '../components/ui/Button';
 import { useAuthStore } from '../stores/authStore';
 
 const Dashboard = () => {
-  const { fetchAllTransactionsForCalculations, transactions, getTodaysSummary, getWeeklyData, getTotalBalance } = useTransactionStore();
-  const { fetchBudgets, fetchRecurringPayments, getTotalBudgetAllocations, getTotalRecurringPayments } = useBudgetStore();
-  const { recommendations, isLoading: isLoadingRecommendations, fetchRecommendations } = useAIStore();
-  const { user } = useAuthStore();
-  
+  const fetchSummary = useTransactionStore((state) => state.fetchSummary);
+  const fetchRecent = useTransactionStore((state) => state.fetchRecent);
+  const transactions = useTransactionStore((state) => state.recent);
+  const { fetchBudgets, fetchRecurringPayments, getTotalBudgetAllocations, getTotalRecurringPayments } = useBudgetStore(
+    useShallow((state) => ({
+      fetchBudgets: state.fetchBudgets,
+      fetchRecurringPayments: state.fetchRecurringPayments,
+      getTotalBudgetAllocations: state.getTotalBudgetAllocations,
+      getTotalRecurringPayments: state.getTotalRecurringPayments,
+    }))
+  );
+  // Subscribed so the totals below recompute when these lists load
+  useBudgetStore((state) => state.budgets);
+  useBudgetStore((state) => state.recurringPayments);
+  const { recommendations, isLoading: isLoadingRecommendations, error: recommendationsError, fetchRecommendations } = useAIStore(
+    useShallow((state) => ({
+      recommendations: state.recommendations,
+      isLoading: state.isLoading,
+      error: state.error,
+      fetchRecommendations: state.fetchRecommendations,
+    }))
+  );
+  const user = useAuthStore((state) => state.user);
+
+  const today = todayIso();
+  const weekStart = addDaysIso(today, -6);
+  // Two aggregated requests instead of downloading every transaction
+  const week = useTransactionStore((state) => state.summaries[summaryKey(weekStart, today, 'day')]);
+  const allTime = useTransactionStore((state) => state.summaries[summaryKey(undefined, today, 'day')]);
+
   useEffect(() => {
-    // Solo hacer fetch si hay usuario autenticado
-    if (user) {
-      console.log('Dashboard: Fetching transactions for user:', user.id);
-      fetchAllTransactionsForCalculations(); // Cargar TODAS las transacciones para cálculos
-      fetchBudgets();
-      fetchRecurringPayments();
-      fetchRecommendations(); // This will check cache automatically
-    }
-  }, [fetchAllTransactionsForCalculations, fetchBudgets, fetchRecurringPayments, fetchRecommendations, user]);
-  
-  const { income: todayIncome, expense: todayExpense } = getTodaysSummary();
-  const { net: totalNet } = getTotalBalance();
+    void fetchSummary(weekStart, today, 'day');
+    void fetchSummary(undefined, today, 'day');
+  }, [fetchSummary, weekStart, today, week, allTime]);
+
+  useEffect(() => {
+    void fetchRecent();
+    void fetchBudgets();
+    void fetchRecurringPayments();
+    void fetchRecommendations();
+  }, [fetchRecent, fetchBudgets, fetchRecurringPayments, fetchRecommendations]);
+
+  const todayPoint = week?.series.find((point) => point.period === today);
+  const todayIncome = todayPoint?.income ?? 0;
+  const todayExpense = todayPoint?.expense ?? 0;
+  const netBalance = allTime?.totals.balance ?? 0;
   const budgetAllocations = getTotalBudgetAllocations();
   const totalRecurringPayments = getTotalRecurringPayments();
-  // Usar el mismo cálculo que los reportes: Balance Neto = Ingresos - Gastos
-  const netBalance = totalNet;
-  const weeklyData = getWeeklyData();
+
+  const weeklyData = useMemo(
+    () => ({
+      labels: (week?.series ?? []).map((point) => formatShortDate(point.period)),
+      income: (week?.series ?? []).map((point) => point.income),
+      expense: (week?.series ?? []).map((point) => point.expense),
+    }),
+    [week]
+  );
 
   const handleReloadRecommendations = async () => {
     await fetchRecommendations(true);
@@ -153,6 +189,16 @@ const Dashboard = () => {
              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
            </div>
          </div>
+       ) : recommendationsError ? (
+         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+           <div>
+             <p className="font-semibold text-gray-900 dark:text-gray-50">No se pudieron generar las recomendaciones</p>
+             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{recommendationsError}</p>
+           </div>
+           <Button variant="outline" size="sm" icon={<RefreshCw size={16} />} onClick={() => void fetchRecommendations(true)}>
+             Reintentar
+           </Button>
+         </div>
        ) : (
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
            {recommendations.map((recommendation) => (
@@ -198,14 +244,14 @@ const Dashboard = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {transactions.slice(0, 5).map((transaction) => (
+                  {transactions.map((transaction) => (
                     <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="mr-3 hidden lg:block">
                             <CalendarDays size={16} className="text-gray-400 dark:text-gray-500" />
                           </div>
-                          {formatDate(transaction.date)}
+                          {formatShortDate(transaction.date)}
                         </div>
                       </td>
                       <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
@@ -262,14 +308,6 @@ const getGreeting = () => {
   if (hour < 12) return 'Buenos días';
   if (hour < 18) return 'Buenas tardes';
   return 'Buenas noches';
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('es-ES', {
-    month: 'short',
-    day: 'numeric',
-  }).format(date);
 };
 
 export default Dashboard;

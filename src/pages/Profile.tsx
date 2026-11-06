@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import { useForm } from 'react-hook-form';
 import { User, Mail, Save, Moon, Sun, Monitor, BookOpen, Download, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
@@ -9,6 +11,7 @@ import Card from '../components/ui/Card';
 import ChangePasswordForm from '../components/ChangePasswordForm';
 import NotificationSettings from '../components/NotificationSettings';
 import ExportDataModal from '../components/transactions/ExportDataModal';
+import DeleteAccountModal from '../components/DeleteAccountModal';
 
 interface ProfileFormValues {
   displayName: string;
@@ -16,12 +19,23 @@ interface ProfileFormValues {
 }
 
 const Profile = () => {
-  const { user, updateProfile } = useAuthStore();
-  const { enableVoiceHints, setEnableVoiceHints, theme, setTheme } = useUIStore();
-  const { exportTransactions } = useTransactionStore();
+  const user = useAuthStore((state) => state.user);
+  const updateProfile = useAuthStore((state) => state.updateProfile);
+  const { enableVoiceHints, setEnableVoiceHints, theme, setTheme } = useUIStore(
+    useShallow((state) => ({
+      enableVoiceHints: state.enableVoiceHints,
+      setEnableVoiceHints: state.setEnableVoiceHints,
+      theme: state.theme,
+      setTheme: state.setTheme,
+    }))
+  );
+  const exportTransactions = useTransactionStore((state) => state.exportTransactions);
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const usesGoogle = user?.provider === 'google';
   
   const { 
     register, 
@@ -41,8 +55,8 @@ const Profile = () => {
       await updateProfile({
         displayName: data.displayName,
       });
-    } catch (error) {
-      console.error('Error al actualizar el perfil:', error);
+    } catch {
+      // The store already showed the error
     } finally {
       setIsSubmitting(false);
     }
@@ -238,16 +252,28 @@ const Profile = () => {
                   variant="outline"
                   fullWidth
                   onClick={() => setShowChangePasswordModal(true)}
+                  disabled={usesGoogle}
+                  title={usesGoogle ? 'Tu cuenta inicia sesión con Google y no tiene contraseña' : undefined}
                 >
                   Cambiar Contraseña
                 </Button>
+                {usesGoogle && (
+                  <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                    Tu cuenta usa Google para iniciar sesión.
+                  </p>
+                )}
 
                 <Button
                   variant="outline"
                   className="mt-2"
                   fullWidth
+                  disabled
+                  title="Disponible próximamente"
                 >
                   Autenticación de Dos Factores
+                  <span className="ml-2 rounded-full bg-gray-200 dark:bg-gray-700 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">
+                    Próximamente
+                  </span>
                 </Button>
               </div>
             </div>
@@ -263,7 +289,7 @@ const Profile = () => {
                 variant="ghost"
                 className="text-primary-700 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/40 w-full justify-start"
                 icon={<BookOpen size={16} />}
-                onClick={() => window.open('/manual', '_blank')}
+                onClick={() => navigate('/manual')}
               >
                 Ver Manual
               </Button>
@@ -281,6 +307,7 @@ const Profile = () => {
                 variant="ghost"
                 className="text-accent-700 dark:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-900/40 w-full justify-start"
                 icon={<Trash2 size={16} />}
+                onClick={() => setShowDeleteModal(true)}
               >
                 Eliminar Cuenta
               </Button>
@@ -288,6 +315,8 @@ const Profile = () => {
           </Card>
         </div>
       </div>
+
+      <DeleteAccountModal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} />
 
       <ChangePasswordForm
         isOpen={showChangePasswordModal}

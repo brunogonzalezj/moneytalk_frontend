@@ -35,6 +35,8 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: 'ui-storage',
+      // effectiveTheme is derived from theme, so it is not persisted
+      partialize: ({ isSidebarOpen, enableVoiceHints, theme }) => ({ isSidebarOpen, enableVoiceHints, theme }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.initializeTheme();
@@ -44,29 +46,17 @@ export const useUIStore = create<UIState>()(
   )
 );
 
+const resolveTheme = (theme: 'light' | 'dark' | 'auto'): 'light' | 'dark' =>
+  theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme;
+
+// Applies the theme to the document and stores the result through set() so subscribers re-render
 function updateEffectiveTheme(theme: 'light' | 'dark' | 'auto'): void {
-  let effectiveTheme: 'light' | 'dark';
+  const effectiveTheme = resolveTheme(theme);
+  useUIStore.setState({ effectiveTheme });
 
-  if (theme === 'auto') {
-    // Detectar preferencia del sistema
-    effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  } else {
-    effectiveTheme = theme;
-  }
-
-  // Actualizar el estado efectivo
-  const store = useUIStore.getState();
-  store.effectiveTheme = effectiveTheme;
-
-  // Aplicar el tema al documento
   const html = document.documentElement;
-  if (effectiveTheme === 'dark') {
-    html.setAttribute('data-theme', 'dark');
-    html.classList.add('dark');
-  } else {
-    html.setAttribute('data-theme', 'moneytalk');
-    html.classList.remove('dark');
-  }
+  html.setAttribute('data-theme', effectiveTheme === 'dark' ? 'dark' : 'moneytalk');
+  html.classList.toggle('dark', effectiveTheme === 'dark');
 }
 
 // Escuchar cambios en la preferencia del sistema

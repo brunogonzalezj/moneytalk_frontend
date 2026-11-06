@@ -21,15 +21,17 @@ const RecurringPayments = lazy(() => import('./pages/RecurringPayments'));
 const Manual = lazy(() => import('./pages/Manual'));
 
 const App = () => {
-  const { checkAuth, isLoading } = useAuthStore();
-  const { initializeTheme } = useUIStore();
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+  // Only the initial session check blocks the app; a login in progress does not
+  const isInitializing = useAuthStore((state) => state.isInitializing);
+  const initializeTheme = useUIStore((state) => state.initializeTheme);
 
   useEffect(() => {
     checkAuth();
     initializeTheme();
   }, [checkAuth, initializeTheme]);
 
-  if (isLoading) {
+  if (isInitializing) {
     return (
       <div className="h-screen flex items-center justify-center">
         <Spinner size="large" />
@@ -51,7 +53,7 @@ const App = () => {
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-          <Route path="/" element={<Navigate to="/dashboard\" replace />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/transactions/new" element={<NewTransaction />} />

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
-import { Transaction } from '../../stores/transactionStore';
+import { Transaction } from '../../types/domain';
+import { getErrorMessage } from '../../api/errors';
 
 type Props = {
   transaction: Transaction | null;
@@ -46,13 +47,11 @@ const EditTransactionModal = ({ transaction, onClose, onSubmit }: Props) => {
 
     setIsSubmitting(true);
     try {
-      // Same shape NewTransaction sends: local midnight as a full ISO timestamp (Prisma rejects bare dates)
-      const isoDate = new Date(`${date}T00:00:00`).toISOString();
-      await onSubmit(transaction.id, { description: description.trim(), amount: parsedAmount, date: isoDate });
+      // The API takes calendar dates (YYYY-MM-DD), so no timezone conversion happens
+      await onSubmit(transaction.id, { description: description.trim(), amount: parsedAmount, date });
       onClose();
     } catch (err) {
-      console.error(err);
-      setError('No se pudo guardar. Intenta nuevamente.');
+      setError(getErrorMessage(err, 'No se pudo guardar. Intenta nuevamente.'));
     } finally {
       setIsSubmitting(false);
     }

@@ -1,5 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import { WifiOff } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
+import { useTransactionStore } from '../../stores/transactionStore';
 import useOfflineDetection from '../../hooks/useOfflineDetection';
 
 interface ProtectedRouteProps {
@@ -7,22 +9,31 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isAuthenticated } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const pending = useTransactionStore((state) => state.outboxTransactions.length);
   const { isOnline } = useOfflineDetection();
   const location = useLocation();
 
-  // If offline, redirect to offline page with return URL
-  if (!isOnline) {
-    return <Navigate to="/offline" state={{ from: location }} replace />;
-  }
-
-  // If not authenticated, redirect to login page with return URL
   if (!isAuthenticated) {
-    return <Navigate to="/login\" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If authenticated and online, render the protected content
-  return children;
+  // Offline the app stays usable: new transactions wait in the outbox until reconnecting
+  return (
+    <>
+      {!isOnline && (
+        <div
+          role="status"
+          className="fixed top-0 inset-x-0 z-[60] flex items-center justify-center gap-2 bg-amber-500 text-amber-950 text-sm font-semibold px-4 py-2 shadow"
+        >
+          <WifiOff size={16} />
+          Sin conexión. Lo que registres se enviará al reconectar
+          {pending > 0 && ` (${pending} pendiente${pending === 1 ? '' : 's'})`}.
+        </div>
+      )}
+      {children}
+    </>
+  );
 };
 
 export default ProtectedRoute;

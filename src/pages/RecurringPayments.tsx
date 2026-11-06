@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Plus, Calendar, Clock, Edit, Trash2, RefreshCw } from 'lucide-react';
-import { useBudgetStore, RecurringPayment, RecurringFrequency, RecurringStatus } from '../stores/budgetStore';
+import { useBudgetStore, RecurringPayment, RecurringFrequency } from '../stores/budgetStore';
 import { useForm } from 'react-hook-form';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import StatCard from '../components/ui/StatCard';
 import formatCurrency from '../utils/formatCurrency';
-import axios from 'axios';
+import { useCategoryStore } from '../stores/categoryStore';
+import { todayIso } from '../utils/date';
 
 interface RecurringPaymentFormValues {
   name: string;
@@ -17,74 +19,68 @@ interface RecurringPaymentFormValues {
   categoryId: number;
 }
 
-interface Category {
-  id: number;
-  name: string;
-  type: 'INCOME' | 'EXPENSE';
-}
-
 const RecurringPayments = () => {
-  const { 
-    recurringPayments, 
-    isLoading, 
-    fetchRecurringPayments, 
-    addRecurringPayment, 
-    updateRecurringPayment, 
+  const {
+    recurringPayments,
+    isLoading,
+    fetchRecurringPayments,
+    addRecurringPayment,
+    updateRecurringPayment,
     deleteRecurringPayment,
-    getTotalRecurringPayments 
-  } = useBudgetStore();
-  
+    getTotalRecurringPayments,
+  } = useBudgetStore(
+    useShallow((state) => ({
+      recurringPayments: state.recurringPayments,
+      isLoading: state.isLoadingRecurring,
+      fetchRecurringPayments: state.fetchRecurringPayments,
+      addRecurringPayment: state.addRecurringPayment,
+      updateRecurringPayment: state.updateRecurringPayment,
+      deleteRecurringPayment: state.deleteRecurringPayment,
+      getTotalRecurringPayments: state.getTotalRecurringPayments,
+    }))
+  );
+  const allCategories = useCategoryStore((state) => state.categories);
+  const fetchCategories = useCategoryStore((state) => state.fetchCategories);
+  // Recurring payments are expenses
+  const categories = useMemo(() => allCategories.filter((cat) => cat.type === 'EXPENSE'), [allCategories]);
+
   const [showForm, setShowForm] = useState(false);
   const [editingPayment, setEditingPayment] = useState<RecurringPayment | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<RecurringPaymentFormValues>();
 
   useEffect(() => {
-    fetchRecurringPayments();
-    fetchCategories();
-  }, [fetchRecurringPayments]);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get('http://localhost:3000/api/categories');
-      setCategories(response.data.filter((cat: Category) => cat.type === 'EXPENSE'));
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-    }
-  };
+    void fetchRecurringPayments();
+    void fetchCategories();
+  }, [fetchRecurringPayments, fetchCategories]);
 
   const onSubmit = async (data: RecurringPaymentFormValues) => {
+    // Calendar date as entered (YYYY-MM-DD); the API does no timezone conversion
+    const payload = {
+      name: data.name,
+      description: data.description,
+      amount: Number(data.amount),
+      frequency: data.frequency,
+      startDate: data.startDate,
+      categoryId: Number(data.categoryId),
+    };
     try {
-      const dateValue = data.startDate;
-      const isoDate = dateValue.includes('T')
-        ? dateValue
-        : new Date(dateValue + 'T00:00:00').toISOString();
-
       if (editingPayment) {
-        await updateRecurringPayment(editingPayment.id, {
-          ...data,
-          startDate: isoDate,
-        });
+        await updateRecurringPayment(editingPayment.id, payload);
         setEditingPayment(null);
       } else {
-        await addRecurringPayment({
-          ...data,
-          startDate: isoDate,
-          category: categories.find(c => c.id === data.categoryId)?.name || 'Sin categoría',
-          status: 'ACTIVE' as RecurringStatus,
-        });
+        await addRecurringPayment(payload);
       }
       reset();
       setShowForm(false);
-    } catch (error) {
-      console.error('Error saving recurring payment:', error);
+    } catch {
+      // The store already showed the error; the form stays open to retry
     }
   };
 
   const handleEdit = (payment: RecurringPayment) => {
     setEditingPayment(payment);
-    const dateValue = payment.nextPaymentDate ? payment.nextPaymentDate.split('T')[0] : new Date().toISOString().split('T')[0];
+    const dateValue = (payment.startDate || payment.nextPaymentDate || todayIso()).slice(0, 10);
     reset({
       name: payment.name,
       description: payment.description || '',
@@ -98,13 +94,12 @@ const RecurringPayments = () => {
 
   const handleDelete = (id: string) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar este pago recurrente?')) {
-      deleteRecurringPayment(id);
+      deleteRecurringPayment(id).catch(() => undefined);
     }
   };
 
   const handleToggleStatus = async (payment: RecurringPayment) => {
-    const newStatus: RecurringStatus = payment.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
-    await updateRecurringPayment(payment.id, { status: newStatus });
+    await updateRecurringPayment(payment.id, { isActive: payment.status !== 'ACTIVE' }).catch(() => undefined);
   };
 
   const getFrequencyLabel = (frequency: RecurringFrequency) => {
@@ -387,14 +382,6 @@ const RecurringPayments = () => {
                 </div>
               </div>
 
-              {payment.lastPaymentDate && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Último Pago</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(payment.lastPaymentDate).toLocaleDateString('es-ES')}
-                  </span>
-                </div>
-              )}
             </div>
           </Card>
         ))}

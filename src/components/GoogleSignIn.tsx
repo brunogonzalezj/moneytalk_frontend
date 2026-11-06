@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore';
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+
 interface GoogleSignInProps {
   mode?: 'signin' | 'signup';
   className?: string;
@@ -18,10 +20,11 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({
   className = '',
   onSuccess
 }) => {
-  const { loginWithGoogle } = useAuthStore();
+  const loginWithGoogle = useAuthStore((state) => state.loginWithGoogle);
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
     // Cargar Google Sign-In script
     const loadGoogleScript = () => {
       const script = document.createElement('script');
@@ -39,7 +42,7 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({
     const initializeGoogleSignIn = () => {
       if (window.google && window.google.accounts && googleButtonRef.current) {
         window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your_google_client_id_here',
+          client_id: GOOGLE_CLIENT_ID!,
           callback: handleGoogleResponse,
           auto_select: false,
           cancel_on_tap_outside: true,
@@ -65,8 +68,8 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({
         if (onSuccess) {
           onSuccess();
         }
-      } catch (error) {
-        console.error('Error en autenticación con Google:', error);
+      } catch {
+        // The store already showed the error
       }
     };
 
@@ -77,6 +80,9 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({
       loadGoogleScript();
     }
   }, [loginWithGoogle, mode, onSuccess]);
+
+  // Without a client id the button cannot work, so it is not shown
+  if (!GOOGLE_CLIENT_ID) return null;
 
   return (
     <div className={`w-full ${className}`}>

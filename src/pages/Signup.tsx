@@ -16,7 +16,8 @@ interface SignupFormValues {
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const { signup, isLoading } = useAuthStore();
+  const signup = useAuthStore((state) => state.signup);
+  const isLoading = useAuthStore((state) => state.isSubmitting);
   const navigate = useNavigate();
   
   const { 
@@ -39,8 +40,8 @@ const Signup = () => {
     try {
       await signup(data.email, data.password, data.displayName);
       navigate('/dashboard', { replace: true });
-    } catch (error) {
-      console.error('Error de registro:', error);
+    } catch {
+      // The store already showed the error
     }
   };
   
@@ -123,9 +124,11 @@ const Signup = () => {
                 {...register('password', {
                   required: 'La contraseña es requerida',
                   minLength: {
-                    value: 6,
-                    message: 'La contraseña debe tener al menos 6 caracteres',
+                    value: 8,
+                    message: 'La contraseña debe tener al menos 8 caracteres',
                   },
+                  validate: (value) =>
+                    (/[A-Za-z]/.test(value) && /\d/.test(value)) || 'Debe incluir al menos una letra y un número',
                 })}
               />
               <button

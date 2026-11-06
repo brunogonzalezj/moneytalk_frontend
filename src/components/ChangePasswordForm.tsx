@@ -17,7 +17,7 @@ interface ChangePasswordFormProps {
 }
 
 const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ isOpen, onClose }) => {
-  const { changePassword } = useAuthStore();
+  const changePassword = useAuthStore((state) => state.changePassword);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -40,8 +40,8 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ isOpen, onClose
       await changePassword(data.currentPassword, data.newPassword);
       reset();
       onClose();
-    } catch (error) {
-      console.error('Error al cambiar contraseña:', error);
+    } catch {
+      // The store already showed the error; the form stays open to retry
     } finally {
       setIsSubmitting(false);
     }
@@ -103,9 +103,11 @@ const ChangePasswordForm: React.FC<ChangePasswordFormProps> = ({ isOpen, onClose
               {...register('newPassword', {
                 required: 'La nueva contraseña es requerida',
                 minLength: {
-                  value: 6,
-                  message: 'La contraseña debe tener al menos 6 caracteres'
-                }
+                  value: 8,
+                  message: 'La contraseña debe tener al menos 8 caracteres'
+                },
+                validate: (value) =>
+                  (/[A-Za-z]/.test(value) && /\d/.test(value)) || 'Debe incluir al menos una letra y un número'
               })}
             />
             <button

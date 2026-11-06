@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { User, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
+import { getErrorMessage } from '../api/errors';
 import Button from '../components/ui/Button';
 import Logo from '../components/layout/Logo';
 import GoogleSignIn from '../components/GoogleSignIn';
@@ -15,7 +16,8 @@ interface LoginFormValues {
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const { login, isLoading } = useAuthStore();
+  const login = useAuthStore((state) => state.login);
+  const isLoading = useAuthStore((state) => state.isSubmitting);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -37,8 +39,8 @@ const Login = () => {
       setErrorMessage('');
       await login(data.email, data.password);
       navigate(from, { replace: true });
-    } catch (error: any) {
-      setErrorMessage(error.message || 'Ocurrió un error durante el inicio de sesión. Por favor, inténtalo de nuevo.');
+    } catch (error) {
+      setErrorMessage(getErrorMessage(error, 'No se pudo iniciar sesión. Inténtalo de nuevo.'));
     }
   };
 
@@ -109,10 +111,7 @@ const Login = () => {
                 className={`input input-bordered w-full pl-10 ${errors.password ? 'input-error' : ''}`}
                 {...register('password', { 
                   required: 'La contraseña es requerida',
-                  minLength: {
-                    value: 6,
-                    message: 'La contraseña debe tener al menos 6 caracteres',
-                  },
+
                 })}
               />
               <button

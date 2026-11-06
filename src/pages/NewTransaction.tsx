@@ -1,186 +1,58 @@
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import {useForm, Controller} from 'react-hook-form';
 import {Mic, MicOff, Save, ChevronDown, ChevronLeft} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
-import {TransactionType} from '../stores/transactionStore';
+import toast from 'react-hot-toast';
+import {TransactionType, useTransactionStore} from '../stores/transactionStore';
+import {useCategoryStore} from '../stores/categoryStore';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import {useUIStore} from '../stores/uiStore';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import Spinner from '../components/ui/Spinner';
 import {parseCurrencyInput} from '../utils/formatCurrency';
-import {DateTime} from "luxon";
-import axios from 'axios';
-import toast from "react-hot-toast";
-import Spinner from "../components/ui/Spinner.tsx";
-import { useAuthStore } from '../stores/authStore';
+import {todayIso} from '../utils/date';
+import {aiApi} from '../api/ai.api';
+import {getErrorMessage, notifyError} from '../api/errors';
 
 
 interface TransactionFormValues {
     description: string;
     amount: number;
-    category: string;
+    category: string; // category id
     type: TransactionType;
-    date: string;
+    date: string; // YYYY-MM-DD
 }
 
-interface Category {
-    id: number
-    name: string;
-    type: TransactionType;
-}
-
-interface CategorizeResult {
-    categoryName: string;
-    amountExtracted: number;
-    descriptionExtracted: string;
-    dateExtracted?: string; // Formato YYYY-MM-DD
-    transactionTypeExtracted: 'INCOME' | 'EXPENSE';
-    isValidFinancialTransaction: boolean;
-    suggestedCategory?: string;
-    confidence: number;
-    rejectionReason?: string;
-}
+const emptyForm = (): TransactionFormValues => ({
+    description: '',
+    amount: 0,
+    category: '',
+    type: 'EXPENSE',
+    date: todayIso(),
+});
 
 const NewTransaction = () => {
 
-    const {enableVoiceHints} = useUIStore();
-    const { user } = useAuthStore();
+    const enableVoiceHints = useUIStore((state) => state.enableVoiceHints);
+    const addTransaction = useTransactionStore((state) => state.addTransaction);
+    const categories = useCategoryStore((state) => state.categories);
+    const fetchCategories = useCategoryStore((state) => state.fetchCategories);
+    const createCategory = useCategoryStore((state) => state.createCategory);
     const navigate = useNavigate();
     const {transcript, isListening, error, startListening, stopListening, resetTranscript} = useSpeechRecognition();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [voiceCommandsVisible, setVoiceCommandsVisible] = useState(false);
-    const [categories, setCategories] = useState<Category[]>([]);
     const [isFetchingGPT, setIsFetchingGPT] = useState(false);
     const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
     const [validationError, setValidationError] = useState<string | null>(null);
     const [showCategoryCreationDialog, setShowCategoryCreationDialog] = useState(false);
+    // The transcript already sent to the AI, so each utterance is categorized once
+    const processedTranscript = useRef('');
 
     useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const response = await axios.get('http://localhost:3000/api/categories');
-                setCategories(response.data); // Asume que la API devuelve un array de categorías
-                return response.data; // Asume que la API devuelve un array de categorías
-            } catch (error) {
-                console.error('Error al obtener categorías:', error);
-                return [];
-            }
-        }
-        fetchCategories()
-    }, []);
-
-    useEffect(() => {
-        if (transcript && categories.length > 0) {
-            processVoiceInput(transcript);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [transcript, categories]);
-
-    const createTransaction = async (data: TransactionFormValues) => {
-        try {
-            if (!user) {
-                throw new Error('Usuario no autenticado');
-            }
-            
-            const response = await axios.post('http://localhost:3000/api/transactions', {
-                description: data.description,
-                amount: data.amount,
-                categoryId: parseInt(data.category),
-                type: data.type,
-                date: DateTime.fromISO(data.date).toJSDate(),
-                userId: parseInt(user.id) // Convertir string a number
-            });
-            toast.success('Transacción creada exitosamente');
-            if (!response.data) {
-                throw new Error('No se pudo crear la transacción');
-            }
-        } catch (error) {
-            console.error('Error al crear transacción:', error);
-            throw new Error('No se pudo crear la transacción');
-        }
-    }
-
-    const fetchGPT = async (description: string): Promise<CategorizeResult | null> => {
-        try {
-            // Obtener token del auth-storage (como lo hace el resto de la app)
-            const authStorage = localStorage.getItem('auth-storage');
-            const token = authStorage ? JSON.parse(authStorage).state?.token : null;
-
-            console.log('Token from auth-storage:', token ? 'exists' : 'null');
-            console.log('Token length:', token?.length);
-
-            if (!token) {
-                toast.error('No hay sesión activa. Por favor, inicia sesión nuevamente.');
-                return null;
-            }
-
-            const response = await fetch('http://localhost:3000/api/gpt/categorize', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({text: description}),
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    toast.error('Sesion expirada. Por favor, inicia sesión nuevamente.');
-                    // Opcional: redirigir a login
-                    // window.location.href = '/login';
-                } else {
-                    toast.error('Error al categorizar la transacción');
-                }
-                throw new Error('Error al categorizar');
-            }
-
-            const data = await response.json();
-            return data as CategorizeResult;
-        } catch (e) {
-            console.error(e);
-            return null;
-        }
-    };
-
-    const createCategory = async (categoryName: string, transactionType: TransactionType): Promise<Category | null> => {
-        try {
-            // Obtener token del auth-storage (como lo hace el resto de la app)
-            const authStorage = localStorage.getItem('auth-storage');
-            console.log('Auth storage:', authStorage);
-            const token = authStorage ? JSON.parse(authStorage).state?.token : null;
-            console.log('Token from createCategory:', token ? token.substring(0, 50) + '...' : 'null');
-
-            if (!token) {
-                throw new Error('No hay token de autenticación disponible');
-            }
-
-            const response = await fetch('http://localhost:3000/api/categories', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    name: categoryName,
-                    type: transactionType
-                }),
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Response error:', response.status, errorText);
-                throw new Error(`Error ${response.status}: ${errorText || 'Error al crear categoría'}`);
-            }
-
-            const data = await response.json();
-            console.log('Category created successfully:', data);
-            return data as Category;
-        } catch (e) {
-            console.error('Create category error:', e);
-            toast.error(e instanceof Error ? e.message : 'Error al crear la categoría');
-            return null;
-        }
-    };
+        void fetchCategories();
+    }, [fetchCategories]);
 
     const {
         control,
@@ -190,152 +62,118 @@ const NewTransaction = () => {
         watch,
         reset,
         formState: {errors}
-    } = useForm<TransactionFormValues>({
-        defaultValues: {
-            description: '',
-            amount: 0,
-            category: '',
-            type: 'EXPENSE',
-            date: DateTime.now().toISODate(), // Fecha actual
-        },
-    });
+    } = useForm<TransactionFormValues>({ defaultValues: emptyForm() });
 
     const transactionType = watch('type');
 
     useEffect(() => {
-        if (isListening) {
-            reset({
-                description: '',
-                amount: 0,
-                category: '',
-                type: 'EXPENSE',
-                date: DateTime.now().toISODate(),
-            });
-        }
+        if (isListening) reset(emptyForm());
     }, [isListening, reset]);
 
-    useEffect(() => {
-        if (transcript) {
-            processVoiceInput(transcript);
-        }
-    }, [transcript]);
+    const fillForm = (values: Partial<TransactionFormValues>) => {
+        (Object.entries(values) as [keyof TransactionFormValues, string | number][]).forEach(([field, value]) =>
+            setValue(field, value as never)
+        );
+    };
 
     const processVoiceInput = async (text: string) => {
-        // Llama a la API para categorizar
         setIsFetchingGPT(true);
         setValidationError(null);
         setSuggestedCategory(null);
 
-        const apiResult = await fetchGPT(text);
-        setIsFetchingGPT(false);
+        try {
+            const result = await aiApi.categorize(text);
 
-        if (apiResult) {
-            if (!apiResult.isValidFinancialTransaction) {
-                // Transacción no válida - no establecer descripción
-                setValidationError(apiResult.rejectionReason || 'No se reconoció como una transacción financiera válida');
-                setValue('description', ''); // Mantener descripción vacía
-                toast.error(apiResult.rejectionReason || 'Por favor, describe una transacción financiera (gasto o ingreso)');
+            if (!result.isValidFinancialTransaction) {
+                const reason = result.rejectionReason || 'Describe un gasto o un ingreso con su monto';
+                setValidationError(reason);
+                setValue('description', '');
+                toast.error(reason);
                 return;
             }
 
-            // Transacción válida pero necesita nueva categoría
-            if (apiResult.suggestedCategory) {
-                setSuggestedCategory(apiResult.suggestedCategory);
-                setValue('amount', apiResult.amountExtracted || 0);
-                setValue('description', apiResult.descriptionExtracted || '');
-                setValue('type', apiResult.transactionTypeExtracted === 'INCOME' ? 'INCOME' : 'EXPENSE');
-                setValue('category', '');
-                
-                // Establecer fecha si fue proporcionada
-                if (apiResult.dateExtracted) {
-                    setValue('date', apiResult.dateExtracted);
-                } else {
-                    // Si no hay fecha, usar hoy por defecto
-                    setValue('date', DateTime.now().toISODate());
-                }
+            fillForm({
+                amount: result.amountExtracted || 0,
+                description: result.descriptionExtracted || '',
+                type: result.transactionTypeExtracted === 'INCOME' ? 'INCOME' : 'EXPENSE',
+                date: result.dateExtracted || todayIso(),
+            });
 
-                // Mostrar diálogo de confirmación para crear categoría
+            // Valid, but no existing category fits: offer to create the suggested one
+            if (result.suggestedCategory) {
+                setValue('category', '');
+                setSuggestedCategory(result.suggestedCategory);
                 setShowCategoryCreationDialog(true);
                 return;
             }
 
-            // Transacción válida con categoría existente
-            if (apiResult.categoryName) {
-                const matchedCategory = categories.find(
-                    cat => cat.name.toLowerCase() === apiResult.categoryName?.toLowerCase()
-                );
-                setValue('category', matchedCategory ? matchedCategory.id.toString() : '');
-                setValue('amount', apiResult.amountExtracted || 0);
-                setValue('description', apiResult.descriptionExtracted || '');
-                setValue('type', apiResult.transactionTypeExtracted === 'INCOME' ? 'INCOME' : 'EXPENSE');
-                
-                // Establecer fecha si fue proporcionada por GPT
-                if (apiResult.dateExtracted) {
-                    setValue('date', apiResult.dateExtracted);
-                } else {
-                    // Si no hay fecha, usar hoy por defecto
-                    setValue('date', DateTime.now().toISODate());
-                }
+            // The server already matched the name to one of the user's categories
+            const matched = categories.find(
+                (cat) => cat.name.toLowerCase() === result.categoryName.toLowerCase() && cat.type === result.transactionTypeExtracted
+            );
+            setValue('category', matched ? String(matched.id) : '');
 
-                if (apiResult.confidence > 0.7) {
-                    toast.success('Transacción categorizada correctamente');
-                } else {
-                    toast('Transacción categorizada con baja confianza. Por favor, verifica los datos.');
-                }
+            if (result.confidence > 0.7) {
+                toast.success('Transacción categorizada correctamente');
             } else {
-                // No hay categoría válida y no hay sugerencia - mantener descripción vacía
-                setValue('description', '');
+                toast('Revisa los datos: la categorización tiene baja confianza.');
             }
-        } else {
-            // Error en la API - mantener descripción vacía
+        } catch (apiError) {
             setValue('description', '');
-            toast.error('Error al procesar la transacción');
+            setValidationError(getErrorMessage(apiError, 'No se pudo procesar el texto'));
+            notifyError(apiError, 'No se pudo procesar el texto');
+        } finally {
+            setIsFetchingGPT(false);
         }
     };
 
+    useEffect(() => {
+        const text = transcript.trim();
+        if (!text || text === processedTranscript.current) return;
+        processedTranscript.current = text;
+        void processVoiceInput(text);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [transcript]);
+
     const handleCreateCategory = async () => {
         if (!suggestedCategory) return;
-
-        const transactionType = watch('type');
-        const newCategory = await createCategory(suggestedCategory, transactionType);
-
-        if (newCategory) {
-            // Actualizar lista de categorías
-            setCategories(prev => [...prev, newCategory]);
-
-            // Autoseleccionar la nueva categoría
-            setValue('category', newCategory.id.toString());
-
-            // Limpiar estado
+        try {
+            const newCategory = await createCategory(suggestedCategory, watch('type'));
+            setValue('category', String(newCategory.id));
             setSuggestedCategory(null);
             setShowCategoryCreationDialog(false);
-
-            toast.success(`Categoría "${newCategory.name}" creada exitosamente`);
+            toast.success(`Categoría "${newCategory.name}" lista`);
+        } catch (createError) {
+            notifyError(createError, 'No se pudo crear la categoría');
         }
     };
 
     const handleRejectCategory = () => {
         setSuggestedCategory(null);
         setShowCategoryCreationDialog(false);
-        toast('Por favor, selecciona una categoría existente manualmente');
+        toast('Selecciona una categoría existente');
     };
 
     const onSubmit = async (data: TransactionFormValues) => {
-        setIsSubmitting(true);
+        const category = categories.find((cat) => String(cat.id) === data.category);
+        if (!category) {
+            toast.error('Selecciona una categoría');
+            return;
+        }
 
-        console.log('Datos de la transacción:', data);
+        setIsSubmitting(true);
         try {
-            await createTransaction({
-                description: data.description,
-                amount: data.amount,
-                category: data.category,
+            await addTransaction({
+                description: data.description.trim(),
+                amount: Number(data.amount),
+                categoryId: category.id,
+                categoryName: category.name,
                 type: data.type,
                 date: data.date,
             });
-
             navigate('/transactions');
-        } catch (error) {
-            console.error('Error al agregar transacción:', error);
+        } catch {
+            // The store already showed the error; the form keeps the data to retry
         } finally {
             setIsSubmitting(false);
         }
@@ -495,7 +333,7 @@ const NewTransaction = () => {
                             <input
                                 type="date"
                                 className={`input input-bordered w-full ${errors.date ? 'input-error' : ''}`}
-                                max={DateTime.now().toISODate()}
+                                max={todayIso()}
                                 {...register('date', {required: 'La fecha es requerida'})}
                             />
                             {errors.date && (

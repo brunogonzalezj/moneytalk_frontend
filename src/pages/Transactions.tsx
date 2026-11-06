@@ -1,58 +1,82 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { 
   Search, CalendarDays, Edit, Trash2, ChevronLeft, ChevronRight, 
   Filter, Plus, Download 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTransactionStore, Transaction, TransactionType } from '../stores/transactionStore';
+import { useCategoryStore } from '../stores/categoryStore';
+import { TransactionFilters } from '../types/domain';
+import { formatShortDate, todayIso } from '../utils/date';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import formatCurrency from '../utils/formatCurrency';
 import ExportDataModal from '../components/transactions/ExportDataModal';
 import EditTransactionModal from '../components/transactions/EditTransactionModal';
 
+const SEARCH_DEBOUNCE_MS = 300;
+
 const Transactions = () => {
-  const { fetchTransactions, transactions, updateTransaction, deleteTransaction, totalPages, currentPage, exportTransactions } = useTransactionStore();
+  const { fetchTransactions, transactions, isLoading, updateTransaction, deleteTransaction, pagination, exportTransactions } =
+    useTransactionStore(
+      useShallow((state) => ({
+        fetchTransactions: state.fetchTransactions,
+        transactions: state.transactions,
+        isLoading: state.isLoading,
+        updateTransaction: state.updateTransaction,
+        deleteTransaction: state.deleteTransaction,
+        pagination: state.pagination,
+        exportTransactions: state.exportTransactions,
+      }))
+    );
+  const { categories, fetchCategories } = useCategoryStore(
+    useShallow((state) => ({ categories: state.categories, fetchCategories: state.fetchCategories }))
+  );
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedType, setSelectedType] = useState<TransactionType | 'all'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const { currentPage, totalPages } = pagination;
 
-  const categories = [...new Set(transactions.map(t => t.category))];
-  
   useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
-  
-  const filteredTransactions = transactions.filter(transaction => {
-    if (searchTerm && !transaction.description.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
-    }
-    
-    if (selectedType !== 'all' && transaction.type !== selectedType) {
-      return false;
-    }
-    
-    if (selectedCategory && transaction.category !== selectedCategory) {
-      return false;
-    }
-    
-    if (dateRange.from && new Date(transaction.date) < new Date(dateRange.from)) {
-      return false;
-    }
-    
-    if (dateRange.to && new Date(transaction.date) > new Date(dateRange.to)) {
-      return false;
-    }
-    
-    return true;
-  });
-  
+    void fetchCategories();
+  }, [fetchCategories]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Filters run on the server, over all the user's transactions
+  const filters = useMemo<TransactionFilters>(
+    () => ({
+      ...(debouncedSearch && { search: debouncedSearch }),
+      ...(selectedType !== 'all' && { type: selectedType }),
+      ...(selectedCategory && { category: Number(selectedCategory) }),
+      ...(dateRange.from && { dateFrom: dateRange.from }),
+      ...(dateRange.to && { dateTo: dateRange.to }),
+    }),
+    [debouncedSearch, selectedType, selectedCategory, dateRange]
+  );
+
+  useEffect(() => {
+    void fetchTransactions(1, filters);
+  }, [fetchTransactions, filters]);
+
+  // Only categories of the selected type are offered
+  const categoryOptions = useMemo(
+    () => (selectedType === 'all' ? categories : categories.filter((c) => c.type === selectedType)),
+    [categories, selectedType]
+  );
+  const filteredTransactions = transactions;
+
   const handlePageChange = (page: number) => {
-    fetchTransactions(page);
+    void fetchTransactions(page, filters);
   };
   
   const handleDeleteTransaction = (id: string) => {
@@ -142,7 +166,10 @@ const Transactions = () => {
               <select
                 className="select select-bordered w-full"
                 value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value as TransactionType | 'all')}
+                onChange={(e) => {
+                  setSelectedType(e.target.value as TransactionType | 'all');
+                  setSelectedCategory('');
+                }}
               >
                 <option value="all">Todos los Tipos</option>
                 <option value="INCOME">Ingresos</option>
@@ -160,8 +187,8 @@ const Transactions = () => {
                 onChange={(e) => setSelectedCategory(e.target.value)}
               >
                 <option value="">Todas las Categorías</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>{category}</option>
+                {categoryOptions.map((category) => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
                 ))}
               </select>
             </div>
@@ -174,7 +201,7 @@ const Transactions = () => {
                 <input
                   type="date"
                   className="input input-bordered"
-                  max={new Date().toISOString().split('T')[0]}
+                  max={todayIso()}
                   value={dateRange.from}
                   onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
                   placeholder="Desde"
@@ -182,7 +209,7 @@ const Transactions = () => {
                 <input
                   type="date"
                   className="input input-bordered"
-                  max={new Date().toISOString().split('T')[0]}
+                  max={todayIso()}
                   value={dateRange.to}
                   onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
                   placeholder="Hasta"
@@ -214,12 +241,12 @@ const Transactions = () => {
                         <div className="mr-3 hidden lg:block">
                           <CalendarDays size={16} className="text-gray-400 dark:text-gray-500" />
                         </div>
-                        {formatDate(transaction.date)}
+                        {formatShortDate(transaction.date, true)}
                       </div>
                     </td>
                     <td className="px-3 sm:px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                       <div>{transaction.description}</div>
-                      <div className="lg:hidden text-xs font-normal text-gray-500 dark:text-gray-400">{formatDate(transaction.date)}</div>
+                      <div className="lg:hidden text-xs font-normal text-gray-500 dark:text-gray-400">{formatShortDate(transaction.date, true)}</div>
                       <span className={`lg:hidden mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
                           transaction.type === 'INCOME'
                             ? 'bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200'
@@ -267,9 +294,17 @@ const Transactions = () => {
               </tbody>
             </table>
           </div>
+        ) : isLoading ? (
+          <div className="px-4 py-10 flex justify-center" aria-busy="true">
+            <span className="loading loading-spinner loading-md text-primary" />
+          </div>
         ) : (
           <div className="px-4 py-8 text-center">
-            <p className="text-gray-500">No se encontraron transacciones con los filtros actuales.</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              {Object.keys(filters).length > 0
+                ? 'No se encontraron transacciones con los filtros actuales.'
+                : 'Todavía no registraste transacciones.'}
+            </p>
             <button
               onClick={resetFilters}
               className="mt-2 text-primary hover:underline"
@@ -291,14 +326,16 @@ const Transactions = () => {
               <button
                 className="px-3 py-1 rounded-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                 onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || isLoading}
+                aria-label="Página anterior"
               >
                 <ChevronLeft size={16} />
               </button>
               <button
                 className="px-3 py-1 rounded-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                 onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || isLoading}
+                aria-label="Página siguiente"
               >
                 <ChevronRight size={16} />
               </button>
@@ -321,15 +358,6 @@ const Transactions = () => {
       />
     </div>
   );
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('es-ES', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(date);
 };
 
 export default Transactions;

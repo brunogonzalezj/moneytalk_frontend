@@ -1,293 +1,184 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import apiClient from '../utils/apiClient';
 import toast from 'react-hot-toast';
+import { authApi, SessionResponse } from '../api/auth.api';
+import { registerAuthBridge } from '../api/client';
+import { notifyError } from '../api/errors';
+import { User } from '../types/domain';
+import { resetAllStores } from './reset';
 
-export interface User {
-  id: string;
-  email: string;
-  displayName?: string;
-  name?: string;
-  avatar?: string;
-  provider?: 'email' | 'google';
-}
+export type { User };
 
 interface AuthState {
   user: User | null;
   token: string | null;
-  isLoading: boolean;
+  refreshToken: string | null;
   isAuthenticated: boolean;
+  // Initial session check on app start (the app waits for it)
+  isInitializing: boolean;
+  // A login/signup form is being submitted (only that form waits for it)
+  isSubmitting: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, displayName: string) => Promise<void>;
   loginWithGoogle: (token: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  deleteAccount: (confirmation: { password?: string; email?: string }) => Promise<void>;
 }
+
+const toUser = (user: SessionResponse['user'], provider: User['provider']): User => ({
+  id: String(user.id),
+  email: user.email,
+  displayName: user.name,
+  name: user.name,
+  avatar: user.avatar,
+  provider,
+});
+
+const signedOut = { user: null, token: null, refreshToken: null, isAuthenticated: false };
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
-      user: null,
-      token: null,
-      isLoading: false,
-      isAuthenticated: false,
-
-      login: async (email, password) => {
-        try {
-          set({ isLoading: true });
-          
-          const response = await apiClient.post('/auth/login', { 
-            email, 
-            password 
-          });
-          
-          const { user, accessToken, refreshToken } = response.data;
-          
-          console.log('Login response:', response.data);
-          console.log('Access token received:', accessToken ? accessToken.substring(0, 50) + '...' : 'NO TOKEN');
-          
-          set({
-            user: {
-              id: String(user.id),
-              email: user.email,
-              displayName: user.name || user.displayName,
-              name: user.name,
-              avatar: user.avatar,
-              provider: 'email',
-            },
-            token: accessToken,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-
-          // Guardar refresh token en localStorage
-          if (refreshToken) {
-            localStorage.setItem('refreshToken', refreshToken);
-          }
-
-          // Verificar que se guardó correctamente
-          setTimeout(() => {
-            const stored = localStorage.getItem('auth-storage');
-            console.log('Token stored in localStorage:', stored ? 'YES' : 'NO');
-            if (stored) {
-              const parsed = JSON.parse(stored);
-              console.log('Stored token preview:', parsed.state?.token ? parsed.state.token.substring(0, 50) + '...' : 'NO TOKEN IN STORAGE');
-            }
-          }, 100);
-          
-          toast.success('Sesión iniciada correctamente');
-        } catch (error) {
-          console.error('Error de inicio de sesión:', error);
-          const errorMessage = (error as any)?.response?.data?.error || 'Credenciales incorrectas';
-          toast.error(errorMessage);
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-
-      signup: async (email, password, displayName) => {
-        try {
-          set({ isLoading: true });
-          const response = await apiClient.post('/auth/signup', {
-            email,
-            password,
-            name: displayName
-          });
-
-          const { user, accessToken, refreshToken } = response.data;
-
-          set({
-            user: {
-              id: String(user.id),
-              email: user.email,
-              displayName: user.name,
-              name: user.name,
-              avatar: user.avatar,
-              provider: 'email',
-            },
-            token: accessToken,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-
-          // Guardar refresh token en localStorage
-          if (refreshToken) {
-            localStorage.setItem('refreshToken', refreshToken);
-          }
-
-          toast.success('Cuenta creada exitosamente');
-        } catch (error) {
-          console.error('Error de registro:', error);
-          const errorMessage = (error as any)?.response?.data?.error || 'No se pudo crear la cuenta';
-          toast.error(errorMessage);
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-
-      loginWithGoogle: async (token) => {
-        try {
-          set({ isLoading: true });
-
-          const response = await apiClient.post('/auth/google', { token });
-
-          const { user, accessToken, refreshToken, isNewUser } = response.data;
-
-          set({
-            user: {
-              id: String(user.id),
-              email: user.email,
-              displayName: user.name,
-              name: user.name,
-              avatar: user.avatar,
-              provider: 'google',
-            },
-            token: accessToken,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-
-          // Guardar refresh token en localStorage
-          if (refreshToken) {
-            localStorage.setItem('refreshToken', refreshToken);
-          }
-
-          toast.success(isNewUser ? 'Cuenta creada con Google' : 'Sesión iniciada con Google');
-        } catch (error) {
-          console.error('Error de autenticación con Google:', error);
-          const errorMessage = (error as any)?.response?.data?.error || 'Error al autenticar con Google';
-          toast.error(errorMessage);
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-
-      logout: () => {
-        // Llamar al endpoint de logout para limpiar la sesión
-        apiClient.post('/auth/logout').catch(console.error);
-
+    (set, get) => {
+      const startSession = (session: SessionResponse, provider: User['provider']) => {
+        // A different account on this device must not see the previous one's data
+        if (get().user && get().user!.id !== String(session.user.id)) resetAllStores();
         set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
+          user: toUser(session.user, provider),
+          token: session.accessToken,
+          refreshToken: session.refreshToken,
+          isAuthenticated: true,
         });
+      };
 
-        // Limpiar refresh token
-        localStorage.removeItem('refreshToken');
-
-        toast.success('Sesión cerrada correctamente');
-      },
-
-      checkAuth: async () => {
+      const submit = async (action: () => Promise<void>, fallback: string) => {
+        set({ isSubmitting: true });
         try {
-          set({ isLoading: true });
-          
-          // Si no hay token, no hacer la verificación
-          const currentState = get();
-          console.log('checkAuth - Current state:', {
-            hasUser: !!currentState.user,
-            hasToken: !!currentState.token,
-            isAuthenticated: currentState.isAuthenticated
-          });
-          
-          if (!currentState.token) {
-            console.log('checkAuth - No token found, clearing auth state');
-            set({
-              user: null,
-              token: null,
-              isAuthenticated: false,
-              isLoading: false,
-            });
+          await action();
+        } catch (error) {
+          notifyError(error, fallback);
+          throw error;
+        } finally {
+          set({ isSubmitting: false });
+        }
+      };
+
+      return {
+        ...signedOut,
+        isInitializing: true,
+        isSubmitting: false,
+
+        login: (email, password) =>
+          submit(async () => {
+            startSession(await authApi.login(email, password), 'email');
+            toast.success('Sesión iniciada correctamente');
+          }, 'No se pudo iniciar sesión'),
+
+        signup: (email, password, displayName) =>
+          submit(async () => {
+            startSession(await authApi.signup(displayName, email, password), 'email');
+            toast.success('Cuenta creada exitosamente');
+          }, 'No se pudo crear la cuenta'),
+
+        loginWithGoogle: (token) =>
+          submit(async () => {
+            const session = await authApi.google(token);
+            startSession(session, 'google');
+            toast.success(session.isNewUser ? 'Cuenta creada con Google' : 'Sesión iniciada con Google');
+          }, 'No se pudo iniciar sesión con Google'),
+
+        logout: async () => {
+          const { refreshToken } = get();
+          set(signedOut);
+          resetAllStores();
+          toast.success('Sesión cerrada correctamente');
+          // Best effort: the server forgets the refresh token
+          if (refreshToken) await authApi.logout(refreshToken).catch(() => undefined);
+        },
+
+        // Confirms the stored session with the server once, when the app starts
+        checkAuth: async () => {
+          if (!get().token) {
+            set({ ...signedOut, isInitializing: false });
             return;
           }
-          
-          // Si ya tenemos usuario y token, marcar como autenticado sin hacer request
-          if (currentState.user && currentState.token) {
-            console.log('checkAuth - User and token exist, setting authenticated');
-            set({
-              isAuthenticated: true,
-              isLoading: false,
-            });
-            return;
+          try {
+            const user = await authApi.me();
+            set({ user: { ...get().user, ...toUser(user, get().user?.provider ?? 'email') }, isAuthenticated: true });
+          } catch {
+            // Expired sessions are signed out by the API client after a failed refresh
+          } finally {
+            set({ isInitializing: false });
           }
-          
-          const response = await apiClient.get('/auth/me');
-          
-          const user = response.data.user || response.data;
-          
-          set({
-            user: {
-              id: String(user.id),
-              email: user.email,
-              displayName: user.name || user.displayName,
-              name: user.name,
-            },
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } catch (error) {
-          console.error('Error de verificación de token:', error);
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
-        }
-      },
+        },
 
-      updateProfile: async (data) => {
-        try {
-          const response = await apiClient.put('/auth/profile', {
-            name: data.displayName || data.name,
-            email: data.email,
-          });
+        updateProfile: async (data) => {
+          try {
+            const user = await authApi.updateProfile({ name: data.displayName || data.name, email: data.email });
+            set({ user: { ...get().user!, ...toUser(user, get().user?.provider) } });
+            toast.success('Perfil actualizado correctamente');
+          } catch (error) {
+            notifyError(error, 'No se pudo actualizar el perfil');
+            throw error;
+          }
+        },
 
-          const updatedUser = response.data.user || response.data;
+        changePassword: async (currentPassword, newPassword) => {
+          try {
+            await authApi.changePassword(currentPassword, newPassword);
+            toast.success('Contraseña cambiada. Se cerraron tus otras sesiones.');
+          } catch (error) {
+            notifyError(error, 'No se pudo cambiar la contraseña');
+            throw error;
+          }
+        },
 
-          set({
-            user: {
-              ...get().user!,
-              id: String(updatedUser.id),
-              email: updatedUser.email,
-              displayName: updatedUser.name,
-              name: updatedUser.name,
-            },
-          });
-
-          toast.success('Perfil actualizado correctamente');
-        } catch (error) {
-          console.error('Error de actualización de perfil:', error);
-          toast.error('No se pudo actualizar el perfil');
-          throw error;
-        }
-      },
-
-      changePassword: async (currentPassword: string, newPassword: string) => {
-        try {
-          await apiClient.put('/auth/change-password', {
-            currentPassword,
-            newPassword,
-          });
-
-          toast.success('Contraseña cambiada exitosamente');
-        } catch (error) {
-          console.error('Error al cambiar contraseña:', error);
-          const errorMessage = (error as any)?.response?.data?.error || 'No se pudo cambiar la contraseña';
-          toast.error(errorMessage);
-          throw error;
-        }
-      },
-    }),
+        deleteAccount: async (confirmation) => {
+          try {
+            await authApi.deleteAccount(confirmation);
+          } catch (error) {
+            notifyError(error, 'No se pudo eliminar la cuenta');
+            throw error;
+          }
+          set(signedOut);
+          resetAllStores();
+          toast.success('Tu cuenta y todos tus datos fueron eliminados');
+        },
+      };
+    },
     {
       name: 'auth-storage',
+      version: 1,
       partialize: (state) => ({
         user: state.user,
         token: state.token,
-        isAuthenticated: state.isAuthenticated
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
       }),
+      // v0 kept the refresh token in its own localStorage key
+      migrate: (persisted, version) => {
+        const state = persisted as AuthState;
+        if (version === 0) {
+          try {
+            return { ...state, refreshToken: localStorage.getItem('refreshToken') };
+          } catch {
+            return state;
+          }
+        }
+        return state;
+      },
     }
   )
 );
+
+registerAuthBridge({
+  getAccessToken: () => useAuthStore.getState().token,
+  getRefreshToken: () => useAuthStore.getState().refreshToken,
+  onRefreshed: ({ accessToken, refreshToken }) => useAuthStore.setState({ token: accessToken, refreshToken }),
+  onSessionExpired: () => {
+    useAuthStore.setState(signedOut);
+    resetAllStores();
+  },
+});

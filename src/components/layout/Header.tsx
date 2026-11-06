@@ -5,7 +5,8 @@ import { useAuthStore } from '../../stores/authStore';
 import Button from '../ui/Button';
 
 const Header = () => {
-  const { user, logout } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
   const location = useLocation();
   const navigate = useNavigate();
   const [pageTitle, setPageTitle] = useState('Panel Principal');
@@ -82,13 +83,7 @@ const Header = () => {
     deferredPrompt.prompt();
 
     // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-    } else {
-      console.log('User dismissed the install prompt');
-    }
+    await deferredPrompt.userChoice;
 
     // Clear the deferredPrompt
     setDeferredPrompt(null);
@@ -101,7 +96,7 @@ const Header = () => {
   };
 
   const handleLogout = () => {
-    logout();
+    void logout();
     setIsUserMenuOpen(false);
   };
 
