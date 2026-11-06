@@ -20,7 +20,6 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ className =
   const {
     isSupported,
     permission,
-    requestPermission,
     subscribe,
     unsubscribe,
     isSubscribed

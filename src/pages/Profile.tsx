@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { User, Mail, Save, Moon, Sun, Monitor, BookOpen } from 'lucide-react';
+import { User, Mail, Save, Moon, Sun, Monitor, BookOpen, Download, Trash2 } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useUIStore } from '../stores/uiStore';
 import { useTransactionStore } from '../stores/transactionStore';
@@ -54,7 +54,7 @@ const Profile = () => {
   
   return (
     <div className="animate-fade-in">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Configuración del Perfil</h1>
+      <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50 mb-6">Configuración del Perfil</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
@@ -155,13 +155,17 @@ const Profile = () => {
               </div>
             </form>
           </Card>
+
+          <div className="mt-6">
+            <NotificationSettings />
+          </div>
         </div>
         
         <div className="lg:col-span-1">
           <Card title="Preferencias">
             <div className="space-y-6">
               <div>
-                <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Reconocimiento de Voz</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Reconocimiento de Voz</h3>
                 <div className="flex items-center">
                   <input
                     type="checkbox"
@@ -180,7 +184,7 @@ const Profile = () => {
               </div>
               
               <div>
-                <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Tema</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Tema</h3>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -229,7 +233,7 @@ const Profile = () => {
               </div>
               
               <div>
-                <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-2">Seguridad</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Seguridad</h3>
                 <Button
                   variant="outline"
                   fullWidth
@@ -250,14 +254,14 @@ const Profile = () => {
           </Card>
           
           <Card className="mt-6" title="Cuenta">
-            <div className="space-y-4">
-              <p className="text-gray-600 dark:text-gray-300">
+            <div className="space-y-1">
+              <p className="text-gray-600 dark:text-gray-300 mb-3">
                 Administra la configuración y preferencias de tu cuenta
               </p>
               
               <Button
                 variant="ghost"
-                className="text-primary-500 hover:bg-primary-50 hover:text-primary-600 w-full justify-start"
+                className="text-primary-700 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/40 w-full justify-start"
                 icon={<BookOpen size={16} />}
                 onClick={() => window.open('/manual', '_blank')}
               >
@@ -266,7 +270,8 @@ const Profile = () => {
               
               <Button
                 variant="ghost"
-                className="text-accent-500 hover:bg-accent-50 hover:text-accent-600 w-full justify-start"
+                className="text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full justify-start"
+                icon={<Download size={16} />}
                 onClick={() => setShowExportModal(true)}
               >
                 Exportar Todos los Datos
@@ -274,18 +279,14 @@ const Profile = () => {
               
               <Button
                 variant="ghost"
-                className="text-accent-500 hover:bg-accent-50 hover:text-accent-600 w-full justify-start"
+                className="text-accent-700 dark:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-900/40 w-full justify-start"
+                icon={<Trash2 size={16} />}
               >
                 Eliminar Cuenta
               </Button>
             </div>
           </Card>
         </div>
-      </div>
-
-      {/* Notification Settings */}
-      <div className="lg:col-span-1">
-        <NotificationSettings />
       </div>
 
       <ChangePasswordForm

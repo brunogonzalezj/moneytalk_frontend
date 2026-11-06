@@ -190,13 +190,13 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
 
       await apiClient.put(`/transactions/${id}`, data);
 
-      toast.success('Transaction updated successfully');
+      toast.success('Transacción actualizada');
     } catch (error) {
       console.error('Error updating transaction:', error);
 
       get().fetchTransactions(get().currentPage);
 
-      toast.error('Failed to update transaction');
+      toast.error('No se pudo actualizar la transacción');
     }
   },
 
@@ -356,9 +356,7 @@ export const useTransactionStore = create<TransactionState>((set, get) => ({
       }));
 
       // Actualizar solo las transacciones sin cambiar la paginación
-      set(state => ({
-        transactions: mappedTransactions,
-      }));
+      set({ transactions: mappedTransactions });
     } catch (error) {
       console.error('Error fetching all transactions for calculations:', error);
     }

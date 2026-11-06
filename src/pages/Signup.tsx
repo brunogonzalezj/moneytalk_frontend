@@ -51,7 +51,7 @@ const Signup = () => {
           <div className="flex justify-center mb-4">
             <Logo />
           </div>
-          <h1 className="text-2xl font-bold text-base-content">Crear Cuenta</h1>
+          <h1 className="text-3xl font-extrabold text-base-content">Crear Cuenta</h1>
           <p className="text-base-content/70 mt-2">Únete a MoneyTalk hoy</p>
         </div>
         

@@ -2,6 +2,12 @@ import axios, { AxiosError } from 'axios';
 import { useAuthStore } from '../stores/authStore';
 import toast from 'react-hot-toast';
 
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    _retry?: boolean;
+  }
+}
+
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
@@ -70,7 +76,7 @@ apiClient.interceptors.response.use(
     }
 
     // Handle 401 - Try to refresh token automatically
-    if (error.response.status === 401 && !originalRequest?._retry) {
+    if (error.response.status === 401 && originalRequest && !originalRequest._retry) {
       console.log('🔄 Attempting to refresh token...');
 
       try {
@@ -105,11 +111,10 @@ apiClient.interceptors.response.use(
           { refreshToken }
         );
 
-        const { accessToken, refreshToken: newRefreshToken, user } = refreshResponse.data;
+        const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data;
 
         // Update the auth store with new tokens
-        const authStore = useAuthStore.getState();
-        authStore.token = accessToken;
+        useAuthStore.setState({ token: accessToken });
 
         // Save new refresh token
         localStorage.setItem('refreshToken', newRefreshToken);

@@ -3,13 +3,14 @@ import { CalendarRange, FileBarChart, RefreshCw } from 'lucide-react';
 import { useTransactionStore, Transaction } from '../stores/transactionStore';
 import ChartWrapper from '../components/ui/ChartWrapper';
 import Card from '../components/ui/Card';
+import StatCard from '../components/ui/StatCard';
 import Button from '../components/ui/Button';
 import formatCurrency from '../utils/formatCurrency';
 
 type DateRange = 'last7days' | 'last30days' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'custom';
 
 const Reports = () => {
-  const { transactions, fetchTransactions, fetchAllTransactionsForCalculations } = useTransactionStore();
+  const { transactions, fetchAllTransactionsForCalculations } = useTransactionStore();
   const [dateRange, setDateRange] = useState<DateRange>('thisMonth');
   const [customRange, setCustomRange] = useState({ from: '', to: '' });
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
@@ -266,9 +267,9 @@ const Reports = () => {
   
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-col md:flex-row justify-between items-start mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Reportes Financieros</h1>
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">Reportes Financieros</h1>
           <p className="text-gray-600 dark:text-gray-400">Analiza tus patrones de ingresos y gastos</p>
         </div>
         
@@ -286,7 +287,7 @@ const Reports = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <div className="flex items-center text-gray-600 dark:text-gray-400">
             <CalendarRange size={20} className="mr-2" />
-            <span>Rango de Fechas:</span>
+            <span className="whitespace-nowrap font-semibold">Rango de Fechas:</span>
           </div>
           
           <div className="flex flex-wrap gap-2">
@@ -383,44 +384,10 @@ const Reports = () => {
         )}
       </Card>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Ingresos Totales</p>
-              <h3 className="text-xl font-bold text-primary-600 dark:text-primary-400">{formatCurrency(totalIncome)}</h3>
-            </div>
-            <div className="p-3 bg-primary-100 dark:bg-primary-900 rounded-full">
-              <FileBarChart className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Gastos Totales</p>
-              <h3 className="text-xl font-bold text-accent-500 dark:text-accent-400">{formatCurrency(totalExpenses)}</h3>
-            </div>
-            <div className="p-3 bg-accent-100 dark:bg-accent-900 rounded-full">
-              <FileBarChart className="h-6 w-6 text-accent-500 dark:text-accent-400" />
-            </div>
-          </div>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Balance Neto</p>
-              <h3 className={`text-xl font-bold ${netCashflow >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-accent-500 dark:text-accent-400'}`}>
-                {formatCurrency(netCashflow)}
-              </h3>
-            </div>
-            <div className={`p-3 rounded-full ${netCashflow >= 0 ? 'bg-primary-100 dark:bg-primary-900' : 'bg-accent-100 dark:bg-accent-900'}`}>
-              <FileBarChart className={`h-6 w-6 ${netCashflow >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-accent-500 dark:text-accent-400'}`} />
-            </div>
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <StatCard label="Ingresos Totales" value={formatCurrency(totalIncome)} icon={FileBarChart} tone="primary" />
+        <StatCard label="Gastos Totales" value={formatCurrency(totalExpenses)} icon={FileBarChart} tone="accent" />
+        <StatCard label="Balance Neto" value={formatCurrency(netCashflow)} icon={FileBarChart} tone={netCashflow >= 0 ? 'primary' : 'accent'} featured />
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -494,7 +461,7 @@ const Reports = () => {
                   font: {
                     size: 11
                   },
-                  callback: function(value) {
+                  callback: function(value: string | number) {
                     return formatCurrency(Number(value));
                   },
                 },
@@ -505,7 +472,7 @@ const Reports = () => {
       </div>
       
       <Card className="mb-6">
-        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-4">Principales Categorías de Gastos</h3>
+        <h3 className="text-lg font-extrabold text-gray-900 dark:text-gray-50 mb-4">Principales Categorías de Gastos</h3>
 
         {Object.keys(expensesByCategory).length > 0 ? (
           <div className="space-y-4">

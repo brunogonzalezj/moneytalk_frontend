@@ -9,9 +9,10 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import formatCurrency from '../utils/formatCurrency';
 import ExportDataModal from '../components/transactions/ExportDataModal';
+import EditTransactionModal from '../components/transactions/EditTransactionModal';
 
 const Transactions = () => {
-  const { fetchTransactions, transactions, deleteTransaction, totalPages, currentPage, exportTransactions } = useTransactionStore();
+  const { fetchTransactions, transactions, updateTransaction, deleteTransaction, totalPages, currentPage, exportTransactions } = useTransactionStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState<TransactionType | 'all'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -72,13 +73,13 @@ const Transactions = () => {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-col md:flex-row justify-between items-start mb-6">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Transacciones</h1>
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">Transacciones</h1>
           <p className="text-gray-600 dark:text-gray-300">Ver y administrar todas tus transacciones financieras</p>
         </div>
         
-        <div className="flex space-x-2 mt-4 md:mt-0">
+        <div className="flex flex-wrap gap-2 shrink-0">
           <Button 
             variant="outline" 
             icon={<Download size={16} />}
@@ -196,29 +197,39 @@ const Transactions = () => {
         {filteredTransactions.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <thead className="bg-gray-50 dark:bg-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3 text-gray-700 dark:text-gray-300">Fecha</th>
-                  <th className="px-4 py-3 text-gray-700 dark:text-gray-300">Descripción</th>
-                  <th className="px-4 py-3 text-gray-700 dark:text-gray-300">Categoría</th>
-                  <th className="px-4 py-3 text-right text-gray-700 dark:text-gray-300">Monto</th>
-                  <th className="px-4 py-3  text-right text-gray-700 dark:text-gray-300">Acciones</th>
+                  <th className="hidden lg:table-cell px-3 sm:px-4 py-3 text-gray-700 dark:text-gray-300">Fecha</th>
+                  <th className="px-3 sm:px-4 py-3 text-gray-700 dark:text-gray-300">Descripción</th>
+                  <th className="hidden lg:table-cell px-3 sm:px-4 py-3 text-gray-700 dark:text-gray-300">Categoría</th>
+                  <th className="px-3 sm:px-4 py-3 text-right text-gray-700 dark:text-gray-300">Monto</th>
+                  <th className="px-3 sm:px-4 py-3 text-right text-gray-700 dark:text-gray-300"><span className="sr-only lg:not-sr-only">Acciones</span></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredTransactions.map((transaction) => (
                   <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="hidden lg:table-cell px-3 sm:px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="mr-3">
+                        <div className="mr-3 hidden lg:block">
                           <CalendarDays size={16} className="text-gray-400 dark:text-gray-500" />
                         </div>
                         {formatDate(transaction.date)}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-800 dark:text-gray-200">{transaction.description}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    <td className="px-3 sm:px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                      <div>{transaction.description}</div>
+                      <div className="lg:hidden text-xs font-normal text-gray-500 dark:text-gray-400">{formatDate(transaction.date)}</div>
+                      <span className={`lg:hidden mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          transaction.type === 'INCOME'
+                            ? 'bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200'
+                            : 'bg-accent-100 dark:bg-accent-900 text-accent-800 dark:text-accent-200'
+                        }`}>
+                          {transaction.category}
+                        </span>
+                    </td>
+                    <td className="hidden lg:table-cell px-3 sm:px-4 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                         transaction.type === 'INCOME'
                           ? 'bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200'
                           : 'bg-accent-100 dark:bg-accent-900 text-accent-800 dark:text-accent-200'
@@ -226,24 +237,24 @@ const Transactions = () => {
                         {transaction.category}
                       </span>
                     </td>
-                    <td className={`px-4 py-3 text-right whitespace-nowrap font-medium ${
+                    <td className={`figure px-3 sm:px-4 py-3 text-right whitespace-nowrap font-bold ${
                       transaction.type === 'INCOME'
                         ? 'text-primary-600 dark:text-primary-400'
                         : 'text-accent-500 dark:text-accent-400'
                     }`}>
                       {transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="flex justify-end space-x-2">
+                    <td className="px-3 sm:px-4 py-3 text-right whitespace-nowrap">
+                      <div className="flex flex-col sm:flex-row items-end sm:justify-end gap-1 sm:gap-2">
                         <button
-                          className="p-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300"
+                          className="p-2 sm:p-1 rounded-md text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300"
                           onClick={() => setEditingTransaction(transaction)}
                           aria-label="Editar transacción"
                         >
                           <Edit size={16} />
                         </button>
                         <button
-                          className="p-1 rounded-md text-gray-500 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400"
+                          className="p-2 sm:p-1 rounded-md text-gray-500 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400"
                           onClick={() => handleDeleteTransaction(transaction.id)}
                           aria-label="Eliminar transacción"
                         >
@@ -301,6 +312,12 @@ const Transactions = () => {
         initialFrom={dateRange.from}
         initialTo={dateRange.to}
         onSubmit={handleConfirmExport}
+      />
+
+      <EditTransactionModal
+        transaction={editingTransaction}
+        onClose={() => setEditingTransaction(null)}
+        onSubmit={updateTransaction}
       />
     </div>
   );

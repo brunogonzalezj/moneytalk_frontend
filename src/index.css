@@ -21,6 +21,71 @@
     --text-secondary: #9ca3af;
     --border-color: #374151;
   }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: rgb(16 185 129 / 0.25);
+  }
+
+  .dark ::selection {
+    background-color: rgb(52 211 153 / 0.3);
+  }
+
+  /* Visible keyboard focus everywhere, in the brand green */
+  :focus-visible {
+    outline: 2px solid #10b981;
+    outline-offset: 2px;
+  }
+
+  /* Thin scrollbars that match the surface */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(156 163 175 / 0.5) transparent;
+  }
+
+  .dark * {
+    scrollbar-color: rgb(75 85 99 / 0.8) transparent;
+  }
+}
+
+@layer utilities {
+  /* Money reads in aligned columns */
+  .figure {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+  }
+
+  /* Staggered entrance for page sections: set --i on each child */
+  .rise {
+    animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rise {
+      animation: none;
+    }
+  }
 }
 
 @layer components {
@@ -86,13 +151,14 @@
 
 /* DaisyUI dark mode improvements */
 .dark .btn-outline {
+  background-color: rgb(31 41 55);
   border-color: rgb(75 85 99);
-  color: rgb(209 213 219);
+  color: rgb(229 231 235);
 }
 
 .dark .btn-outline:hover {
-  background-color: rgb(16 185 129); /* Verde primario */
-  color: white;
+  background-color: rgb(6 78 59 / 0.5); /* Verde primario, tenue */
+  color: rgb(110 231 183);
   border-color: rgb(16 185 129);
 }
 

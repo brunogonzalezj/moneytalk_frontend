@@ -1,10 +1,10 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, ListOrdered, PiggyBank, RefreshCw, BarChart3, X } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import Logo from './Logo';
 
 const Sidebar = () => {
-  const { isSidebarOpen, setSidebarOpen } = useUIStore();
+  const { setSidebarOpen } = useUIStore();
 
   return (
     <div className="w-64 h-full bg-white dark:bg-gray-800 shadow-xl flex flex-col">
@@ -28,10 +28,10 @@ const Sidebar = () => {
             <NavLink
               to="/dashboard"
               className={({ isActive }) =>
-                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                `flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group active:scale-[0.98] ${
                   isActive
-                    ? 'bg-primary-500 text-white shadow-md'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary-600 dark:hover:text-primary-300'
+                    ? 'bg-primary-600 text-white shadow-[0_2px_4px_rgba(16,24,40,0.1),0_6px_14px_-4px_rgba(5,150,105,0.55)]'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/60 hover:text-primary-700 dark:hover:text-primary-300'
                 }`
               }
             >
@@ -43,10 +43,10 @@ const Sidebar = () => {
             <NavLink
               to="/transactions"
               className={({ isActive }) =>
-                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                `flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group active:scale-[0.98] ${
                   isActive
-                    ? 'bg-primary-500 text-white shadow-md'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary-600 dark:hover:text-primary-300'
+                    ? 'bg-primary-600 text-white shadow-[0_2px_4px_rgba(16,24,40,0.1),0_6px_14px_-4px_rgba(5,150,105,0.55)]'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/60 hover:text-primary-700 dark:hover:text-primary-300'
                 }`
               }
             >
@@ -58,10 +58,10 @@ const Sidebar = () => {
             <NavLink
               to="/budgets"
               className={({ isActive }) =>
-                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                `flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group active:scale-[0.98] ${
                   isActive
-                    ? 'bg-primary-500 text-white shadow-md'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary-600 dark:hover:text-primary-300'
+                    ? 'bg-primary-600 text-white shadow-[0_2px_4px_rgba(16,24,40,0.1),0_6px_14px_-4px_rgba(5,150,105,0.55)]'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/60 hover:text-primary-700 dark:hover:text-primary-300'
                 }`
               }
             >
@@ -73,10 +73,10 @@ const Sidebar = () => {
             <NavLink
               to="/recurring-payments"
               className={({ isActive }) =>
-                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                `flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group active:scale-[0.98] ${
                   isActive
-                    ? 'bg-primary-500 text-white shadow-md'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary-600 dark:hover:text-primary-300'
+                    ? 'bg-primary-600 text-white shadow-[0_2px_4px_rgba(16,24,40,0.1),0_6px_14px_-4px_rgba(5,150,105,0.55)]'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/60 hover:text-primary-700 dark:hover:text-primary-300'
                 }`
               }
             >
@@ -88,10 +88,10 @@ const Sidebar = () => {
             <NavLink
               to="/reports"
               className={({ isActive }) =>
-                `flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group ${
+                `flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group active:scale-[0.98] ${
                   isActive
-                    ? 'bg-primary-500 text-white shadow-md'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900 hover:text-primary-600 dark:hover:text-primary-300'
+                    ? 'bg-primary-600 text-white shadow-[0_2px_4px_rgba(16,24,40,0.1),0_6px_14px_-4px_rgba(5,150,105,0.55)]'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/60 hover:text-primary-700 dark:hover:text-primary-300'
                 }`
               }
             >

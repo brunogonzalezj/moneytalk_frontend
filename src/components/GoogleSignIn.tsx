@@ -18,7 +18,7 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({
   className = '',
   onSuccess
 }) => {
-  const { loginWithGoogle, isLoading } = useAuthStore();
+  const { loginWithGoogle } = useAuthStore();
   const googleButtonRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

@@ -177,7 +177,7 @@ const NewTransaction = () => {
             return data as Category;
         } catch (e) {
             console.error('Create category error:', e);
-            toast.error(e.message || 'Error al crear la categoría');
+            toast.error(e instanceof Error ? e.message : 'Error al crear la categoría');
             return null;
         }
     };
@@ -350,12 +350,12 @@ const NewTransaction = () => {
             <div className="flex items-center mb-6">
                 <button
                     onClick={goBack}
-                    className="mr-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    className="-ml-2 mr-2 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                     aria-label="Volver a la página anterior"
                 >
                     <ChevronLeft size={24} className="text-gray-600 dark:text-gray-400" />
                 </button>
-                <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Agregar Nueva Transacción</h1>
+                <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">Agregar Nueva Transacción</h1>
             </div>
 
             <Card className="mb-6">
@@ -364,31 +364,31 @@ const NewTransaction = () => {
                         <div
                             className={`w-20 h-20 rounded-full flex items-center justify-center ${
                                 isListening
-                                    ? 'bg-primary-100 dark:bg-primary-900 animate-pulse-slow'
-                                    : 'bg-gray-100 dark:bg-gray-700'
+                                    ? 'bg-accent-100 dark:bg-accent-900/60 animate-pulse-slow'
+                                    : 'bg-primary-100 dark:bg-primary-900/60'
                             }`}
                         >
                             <button
                                 type="button"
                                 onClick={isListening ? stopListening : startListening}
-                                className={`w-16 h-16 rounded-full flex items-center justify-center ${
+                                className={`w-16 h-16 rounded-full flex items-center justify-center text-white transition-[transform,background-color,box-shadow] duration-200 active:scale-95 ${
                                     isListening
-                                        ? 'bg-primary text-white'
-                                        : 'bg-white dark:bg-gray-800 shadow-md hover:bg-gray-50 dark:hover:bg-gray-700'
+                                        ? 'bg-accent-600 hover:bg-accent-700 shadow-[0_6px_16px_-4px_rgba(231,61,62,0.55)]'
+                                        : 'bg-primary-600 hover:bg-primary-700 hover:scale-105 shadow-[0_6px_16px_-4px_rgba(5,150,105,0.55)]'
                                 }`}
                                 aria-label={isListening ? 'Detener grabación' : 'Iniciar grabación'}
                             >
                                 {isListening ? (
                                     <MicOff size={24}/>
                                 ) : (
-                                    <Mic size={24} className="text-primary"/>
+                                    <Mic size={26}/>
                                 )}
                             </button>
                         </div>
 
                         {isListening && (
                             <div
-                                className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-primary text-black text-xs px-2 py-1 rounded-full">
+                                className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-accent-700 text-white text-xs font-semibold px-2 py-1 rounded-full">
                                 Escuchando...
                             </div>
                         )}
@@ -412,7 +412,7 @@ const NewTransaction = () => {
                         <div className="text-error text-sm mb-2">{error}</div>
                     )}
 
-                    <p className="text-gray-600 dark:text-gray-400 text-sm text-center">
+                    <p className="text-gray-700 dark:text-gray-300 text-sm font-medium text-center">
                         {isListening
                             ? "Estoy escuchando... habla claramente e incluye el monto."
                             : "Toca el micrófono y describe tu transacción"

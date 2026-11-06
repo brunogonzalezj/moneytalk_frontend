@@ -21,13 +21,15 @@ const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseClasses = 'btn rounded-lg font-medium transition duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-2';
-  
+  const baseClasses = 'btn flex-nowrap whitespace-nowrap rounded-lg font-semibold tracking-[-0.01em] transition duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-500 active:scale-[0.97]';
+
+  const solidDepth = 'shadow-[0_1px_2px_rgba(16,24,40,0.12),0_4px_10px_-2px_var(--btn-glow)] hover:shadow-[0_2px_4px_rgba(16,24,40,0.12),0_8px_16px_-4px_var(--btn-glow)] hover:-translate-y-px';
+
   const variantClasses = {
-    primary: 'btn-primary text-white',
-    secondary: 'btn-secondary text-white',
-    accent: 'btn-accent text-white',
-    outline: 'btn-outline border-2 hover:text-white',
+    primary: `btn-primary !bg-primary-600 hover:!bg-primary-700 !border-primary-600 hover:!border-primary-700 text-white [--btn-glow:rgba(5,150,105,0.45)] ${solidDepth}`,
+    secondary: `btn-secondary text-white [--btn-glow:rgba(30,64,175,0.4)] ${solidDepth}`,
+    accent: `btn-accent text-white [--btn-glow:rgba(231,61,62,0.4)] ${solidDepth}`,
+    outline: 'btn-outline border border-gray-300 bg-white text-gray-800 shadow-[0_1px_2px_rgba(16,24,40,0.06)] hover:bg-primary-50 hover:border-primary-500 hover:text-primary-700',
     ghost: 'btn-ghost hover:bg-base-200',
   };
   

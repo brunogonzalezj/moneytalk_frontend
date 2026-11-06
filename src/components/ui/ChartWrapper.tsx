@@ -11,7 +11,8 @@ import {
   Tooltip,
   Legend,
   ChartData,
-  ChartOptions
+  ChartOptions,
+  TooltipItem
 } from 'chart.js';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import Card from './Card';
@@ -28,6 +29,8 @@ ChartJS.register(
   Tooltip,
   Legend
 );
+
+ChartJS.defaults.font.family = 'Inter, system-ui, sans-serif';
 
 type ChartType = 'line' | 'bar' | 'pie';
 
@@ -54,24 +57,48 @@ const ChartWrapper: React.FC<ChartWrapperProps> = ({
   const defaultOptions: ChartOptions<any> = {
     responsive: true,
     maintainAspectRatio: false,
+    elements: {
+      line: { borderWidth: 3 },
+      point: { radius: 3, hoverRadius: 6, borderWidth: 2, hoverBorderWidth: 3 },
+      bar: { borderRadius: 6 },
+    },
     plugins: {
       legend: {
         position: 'top' as const,
+        labels: {
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 8,
+          boxHeight: 8,
+          padding: 16,
+          // Solid swatches in the line color instead of the faint area fill
+          ...(type !== 'pie' && {
+            generateLabels: (chart: ChartJS) =>
+              ChartJS.defaults.plugins.legend.labels.generateLabels(chart).map((label) => ({
+                ...label,
+                fillStyle: label.strokeStyle,
+              })),
+          }),
+          font: { family: 'Inter, system-ui, sans-serif', size: 13, weight: 600 },
+        },
       },
       tooltip: {
         mode: 'index',
         intersect: false,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        titleColor: '#333',
-        bodyColor: '#666',
-        borderColor: '#ddd',
+        backgroundColor: 'rgba(17, 24, 39, 0.95)',
+        titleColor: '#f9fafb',
+        bodyColor: '#e5e7eb',
+        borderColor: 'rgba(255, 255, 255, 0.08)',
         borderWidth: 1,
-        padding: 10,
+        cornerRadius: 8,
+        padding: 12,
+        titleFont: { family: 'Inter, system-ui, sans-serif', weight: 700 },
+        bodyFont: { family: 'Inter, system-ui, sans-serif', weight: 500 },
         boxPadding: 5,
         usePointStyle: true,
         callbacks: {
           // Format currency for tooltips
-          label: function(context) {
+          label: function(context: TooltipItem<any>) {
             let label = context.dataset.label || '';
             if (label) {
               label += ': ';
@@ -101,7 +128,7 @@ const ChartWrapper: React.FC<ChartWrapperProps> = ({
       y: {
         beginAtZero: true,
         ticks: {
-          callback: function(value) {
+          callback: function(value: string | number) {
             return new Intl.NumberFormat('es-BO', {
               style: 'currency',
               currency: 'BOB',

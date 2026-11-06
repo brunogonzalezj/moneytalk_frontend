@@ -5,7 +5,7 @@ const Manual = () => {
   return (
     <div className="animate-fade-in max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-3">
+        <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50 mb-2 flex items-center gap-3">
           <BookOpen size={32} className="text-primary-500" />
           Manual de Usuario - MoneyTalk
         </h1>

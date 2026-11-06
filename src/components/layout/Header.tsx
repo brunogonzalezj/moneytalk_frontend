@@ -1,12 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Menu, Bell, Download, User, LogOut, ChevronDown } from 'lucide-react';
-import { useUIStore } from '../../stores/uiStore';
+import { Bell, Download, User, LogOut, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import Button from '../ui/Button';
 
 const Header = () => {
-  const { setSidebarOpen } = useUIStore();
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,6 +25,9 @@ const Header = () => {
         'transactions': 'Transacciones',
         'new': 'Nueva Transacción',
         'reports': 'Reportes',
+        'budgets': 'Presupuestos',
+        'recurring-payments': 'Pagos Recurrentes',
+        'manual': 'Manual',
         'profile': 'Perfil'
       };
       const title = pathSegments[pathSegments.length - 1];
@@ -111,7 +112,7 @@ const Header = () => {
       }`}
     >
       <div className="flex items-center">
-        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">{pageTitle}</h1>
+        <h1 className="text-xl font-extrabold text-gray-900 dark:text-gray-50">{pageTitle}</h1>
       </div>
 
       <div className="flex items-center space-x-4">
@@ -141,7 +142,7 @@ const Header = () => {
             className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             aria-label="Menú de usuario"
           >
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block">
+            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 hidden sm:block">
               {user?.displayName || user?.name || user?.email}
             </span>
             <div className="avatar placeholder">

@@ -1,5 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
 
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>;
+}
+
+interface SpeechRecognitionErrorEventLike {
+  error: string;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => any;
+    webkitSpeechRecognition?: new () => any;
+  }
+}
+
 interface SpeechRecognitionResult {
   transcript: string;
   isListening: boolean;
@@ -30,7 +46,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     recognitionInstance.interimResults = true;
     recognitionInstance.lang = 'es-MX';
 
-    recognitionInstance.onresult = (event) => {
+    recognitionInstance.onresult = (event: SpeechRecognitionEventLike) => {
       let finalTranscript = '';
       
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -45,7 +61,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
       }
     };
 
-    recognitionInstance.onerror = (event) => {
+    recognitionInstance.onerror = (event: SpeechRecognitionErrorEventLike) => {
       setError(`Speech recognition error: ${event.error}`);
       setIsListening(false);
     };

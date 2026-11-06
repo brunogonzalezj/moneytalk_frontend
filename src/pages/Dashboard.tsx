@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ArrowUpCircle, ArrowDownCircle, TrendingUp, CalendarDays, Plus, Brain, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTransactionStore } from '../stores/transactionStore';
@@ -6,12 +6,13 @@ import { useBudgetStore } from '../stores/budgetStore';
 import { useAIStore } from '../stores/aiStore';
 import ChartWrapper from '../components/ui/ChartWrapper';
 import Card from '../components/ui/Card';
+import StatCard from '../components/ui/StatCard';
 import formatCurrency from '../utils/formatCurrency';
 import Button from '../components/ui/Button';
 import { useAuthStore } from '../stores/authStore';
 
 const Dashboard = () => {
-  const { fetchTransactions, fetchAllTransactionsForCalculations, transactions, getTodaysSummary, getWeeklyData, getTotalBalance } = useTransactionStore();
+  const { fetchAllTransactionsForCalculations, transactions, getTodaysSummary, getWeeklyData, getTotalBalance } = useTransactionStore();
   const { fetchBudgets, fetchRecurringPayments, getTotalBudgetAllocations, getTotalRecurringPayments } = useBudgetStore();
   const { recommendations, isLoading: isLoadingRecommendations, fetchRecommendations } = useAIStore();
   const { user } = useAuthStore();
@@ -27,8 +28,8 @@ const Dashboard = () => {
     }
   }, [fetchAllTransactionsForCalculations, fetchBudgets, fetchRecurringPayments, fetchRecommendations, user]);
   
-  const { income: todayIncome, expense: todayExpense, net: todayNet } = getTodaysSummary();
-  const { income: totalIncome, expense: totalExpense, net: totalNet } = getTotalBalance();
+  const { income: todayIncome, expense: todayExpense } = getTodaysSummary();
+  const { net: totalNet } = getTotalBalance();
   const budgetAllocations = getTotalBudgetAllocations();
   const totalRecurringPayments = getTotalRecurringPayments();
   // Usar el mismo cálculo que los reportes: Balance Neto = Ingresos - Gastos
@@ -63,13 +64,13 @@ const Dashboard = () => {
   
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-col md:flex-row justify-between items-start mb-6">
+      <div className="rise flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6" style={{ ['--i' as string]: 0 }}>
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">¡{getGreeting()}, {user?.displayName || 'usuario'}!</h1>
-          <p className="text-gray-600 dark:text-gray-300">Aquí está el resumen de tus finanzas de hoy.</p>
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">¡{getGreeting()}, {user?.displayName || 'usuario'}!</h1>
+          <p className="mt-1 text-gray-600 dark:text-gray-300">Aquí está el resumen de tus finanzas de hoy.</p>
         </div>
         
-        <Link to="/transactions/new" className="mt-4 md:mt-0">
+        <Link to="/transactions/new" className="shrink-0">
           <Button variant="primary" icon={<Plus size={16} />}>
             Nueva Transacción
           </Button>
@@ -77,57 +78,23 @@ const Dashboard = () => {
       </div>
       
       {/* Tarjetas de Resumen */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Ingresos de Hoy</p>
-              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency(todayIncome)}</h3>
-            </div>
-            <div className="p-3 bg-primary-100 dark:bg-primary-900 rounded-full">
-              <ArrowUpCircle className="h-6 w-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Gastos de Hoy</p>
-              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency(todayExpense)}</h3>
-            </div>
-            <div className="p-3 bg-accent-100 dark:bg-accent-900 rounded-full">
-              <ArrowDownCircle className="h-6 w-6 text-accent-600 dark:text-accent-400" />
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Balance Neto</p>
-              <h3 className={`text-xl font-bold ${netBalance >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-accent-500 dark:text-accent-400'}`}>
-                {formatCurrency(netBalance)}
-              </h3>
-            </div>
-            <div className={`p-3 rounded-full ${netBalance >= 0 ? 'bg-primary-100 dark:bg-primary-900' : 'bg-accent-100 dark:bg-accent-900'}`}>
-              <TrendingUp className={`h-6 w-6 ${netBalance >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-accent-600 dark:text-accent-400'}`} />
-            </div>
-          </div>
-        </Card>
+      <div className="rise grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6" style={{ ['--i' as string]: 1 }}>
+        <StatCard label="Ingresos de Hoy" value={formatCurrency(todayIncome)} icon={ArrowUpCircle} tone="primary" />
+        <StatCard label="Gastos de Hoy" value={formatCurrency(todayExpense)} icon={ArrowDownCircle} tone="accent" />
+        <StatCard label="Balance Neto" value={formatCurrency(netBalance)} icon={TrendingUp} tone={netBalance >= 0 ? 'primary' : 'accent'} featured />
       </div>
-      
+
       {/* Budget and Recurring Payments Summary */}
       {(budgetAllocations > 0 || totalRecurringPayments > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="rise grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6" style={{ ['--i' as string]: 2 }}>
           {budgetAllocations > 0 && (
-            <Card className="hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
+            <Card hoverable>
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Asignación Mensual a Presupuestos</p>
-                  <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">{formatCurrency(budgetAllocations)}</h3>
+                  <p className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Asignación Mensual a Presupuestos</p>
+                  <h3 className="figure text-2xl font-extrabold text-blue-600 dark:text-blue-400">{formatCurrency(budgetAllocations)}</h3>
                 </div>
-                <Link to="/budgets" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium">
+                <Link to="/budgets" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-semibold whitespace-nowrap">
                   Ver Presupuestos →
                 </Link>
               </div>
@@ -135,13 +102,13 @@ const Dashboard = () => {
           )}
           
           {totalRecurringPayments > 0 && (
-            <Card className="hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
+            <Card hoverable>
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Pagos Recurrentes Mensuales</p>
-                  <h3 className="text-lg font-bold text-orange-600 dark:text-orange-400">{formatCurrency(totalRecurringPayments)}</h3>
+                  <p className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Pagos Recurrentes Mensuales</p>
+                  <h3 className="figure text-2xl font-extrabold text-orange-600 dark:text-orange-400">{formatCurrency(totalRecurringPayments)}</h3>
                 </div>
-                <Link to="/recurring-payments" className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 text-sm font-medium">
+                <Link to="/recurring-payments" className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 text-sm font-semibold whitespace-nowrap">
                   Ver Pagos →
                 </Link>
               </div>
@@ -151,7 +118,7 @@ const Dashboard = () => {
       )}
       
       {/* Sección de Gráficos */}
-      <div className="mb-6">
+      <div className="rise mb-6" style={{ ['--i' as string]: 3 }}>
         <ChartWrapper
           type="line"
           data={chartData}
@@ -162,11 +129,11 @@ const Dashboard = () => {
       </div>
       
      {/* Recomendaciones de IA */}
-     <div className="mb-6">
+     <div className="rise mb-6" style={{ ['--i' as string]: 4 }}>
        <div className="flex items-center justify-between mb-4">
          <div className="flex items-center">
            <Brain className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-2" />
-           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Recomendaciones Inteligentes</h2>
+           <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-50">Recomendaciones Inteligentes</h2>
          </div>
          <Button
            variant="outline"
@@ -180,7 +147,7 @@ const Dashboard = () => {
        </div>
        
        {isLoadingRecommendations ? (
-         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
            <div className="animate-pulse">
              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
@@ -189,21 +156,17 @@ const Dashboard = () => {
        ) : (
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
            {recommendations.map((recommendation) => (
-             <Card key={recommendation.id} className="hover:shadow-md transition-shadow">
+             <Card key={recommendation.id} hoverable>
                <div className="flex items-start">
-                 <div className={`p-2 rounded-full mr-3 ${
-                   recommendation.type === 'warning' ? 'bg-yellow-100' :
-                   recommendation.type === 'success' ? 'bg-green-100' :
-                   'bg-blue-100'
+                 <div className={`p-2 rounded-lg mr-3 shrink-0 ${
+                   recommendation.type === 'warning' ? 'bg-yellow-500' :
+                   recommendation.type === 'success' ? 'bg-primary-600' :
+                   'bg-blue-600'
                  }`}>
-                   <Brain className={`h-4 w-4 ${
-                     recommendation.type === 'warning' ? 'text-yellow-600' :
-                     recommendation.type === 'success' ? 'text-green-600' :
-                     'text-blue-600'
-                   }`} />
+                   <Brain className="h-4 w-4 text-white" />
                  </div>
                  <div className="flex-1">
-                   <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{recommendation.title}</h3>
+                   <h3 className="font-bold text-gray-900 dark:text-gray-50 mb-1">{recommendation.title}</h3>
                    <p className="text-sm text-gray-600 dark:text-gray-300">{recommendation.description}</p>
                  </div>
                </div>
@@ -214,23 +177,23 @@ const Dashboard = () => {
      </div>
       
       {/* Transacciones Recientes */}
-      <div className="mb-6">
+      <div className="rise mb-6" style={{ ['--i' as string]: 5 }}>
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Transacciones Recientes</h2>
-          <Link to="/transactions" className="text-primary dark:text-primary-400 hover:underline text-sm font-medium">
+          <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-50">Transacciones Recientes</h2>
+          <Link to="/transactions" className="text-primary-700 dark:text-primary-400 hover:underline underline-offset-4 text-sm font-semibold">
             Ver Todas
           </Link>
         </div>
         
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-[0_1px_2px_rgba(16,24,40,0.06),0_4px_12px_-2px_rgba(16,24,40,0.08)]">
           {transactions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <thead className="bg-gray-50 dark:bg-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                   <tr>
                     <th className="px-4 py-3">Fecha</th>
                     <th className="px-4 py-3">Descripción</th>
-                    <th className="px-4 py-3">Categoría</th>
+                    <th className="hidden lg:table-cell px-4 py-3">Categoría</th>
                     <th className="px-4 py-3 text-right">Monto</th>
                   </tr>
                 </thead>
@@ -239,15 +202,24 @@ const Dashboard = () => {
                     <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="mr-3">
+                          <div className="mr-3 hidden lg:block">
                             <CalendarDays size={16} className="text-gray-400 dark:text-gray-500" />
                           </div>
                           {formatDate(transaction.date)}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-800 dark:text-gray-200">{transaction.description}</td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
+                        <div>{transaction.description}</div>
+                        <span className={`lg:hidden mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            transaction.type === 'INCOME'
+                              ? 'bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200'
+                              : 'bg-accent-100 dark:bg-accent-900 text-accent-800 dark:text-accent-200'
+                          }`}>
+                            {transaction.category}
+                          </span>
+                      </td>
+                      <td className="hidden lg:table-cell px-4 py-3">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                           transaction.type === 'INCOME'
                             ? 'bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200'
                             : 'bg-accent-100 dark:bg-accent-900 text-accent-800 dark:text-accent-200'
@@ -255,7 +227,7 @@ const Dashboard = () => {
                           {transaction.category}
                         </span>
                       </td>
-                      <td className={`px-4 py-3 text-right whitespace-nowrap font-medium ${
+                      <td className={`figure px-4 py-3 text-right whitespace-nowrap font-bold ${
                         transaction.type === 'INCOME'
                           ? 'text-primary-600 dark:text-primary-400'
                           : 'text-accent-500 dark:text-accent-400'

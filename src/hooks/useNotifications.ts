@@ -148,8 +148,6 @@ export const useNotifications = (): UseNotificationsReturn => {
       body: options.body,
       icon: options.icon || '/favicon.ico',
       requireInteraction: options.requireInteraction || false,
-      actions: options.actions || [],
-      vibrate: [100, 50, 100],
       tag: 'moneytalk-notification',
     });
 

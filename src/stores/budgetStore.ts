@@ -52,14 +52,13 @@ interface BudgetState {
   
   // Recurring payment methods
   fetchRecurringPayments: () => Promise<void>;
-  addRecurringPayment: (data: Omit<RecurringPayment, 'id' | 'lastPaymentDate' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateRecurringPayment: (id: string, data: Partial<RecurringPayment>) => Promise<void>;
+  addRecurringPayment: (data: Omit<RecurringPayment, 'id' | 'lastPaymentDate' | 'createdAt' | 'updatedAt' | 'nextPaymentDate'> & { startDate: string }) => Promise<void>;
+  updateRecurringPayment: (id: string, data: Partial<RecurringPayment> & { startDate?: string }) => Promise<void>;
   deleteRecurringPayment: (id: string) => Promise<void>;
   
   // Utility methods
   getTotalBudgetAllocations: () => number;
   getTotalRecurringPayments: () => number;
-  getAvailableBalance: (totalIncome: number, totalExpenses: number, includeRecurring?: boolean) => number;
 }
 
 export const useBudgetStore = create<BudgetState>()(
@@ -298,7 +297,7 @@ export const useBudgetStore = create<BudgetState>()(
 
       updateRecurringPayment: async (id, data) => {
         try {
-          const backendData = { ...data };
+          const backendData: Record<string, unknown> = { ...data };
 
           if (data.status) {
             backendData.isActive = data.status === 'ACTIVE';
@@ -372,12 +371,6 @@ export const useBudgetStore = create<BudgetState>()(
           }, 0);
       },
 
-      getAvailableBalance: (totalIncome, totalExpenses, includeRecurring = true) => {
-        const budgetAllocations = get().getTotalBudgetAllocations();
-        // Usar solo pagos recurrentes que se procesaron hoy, no todos los futuros
-        const todaysRecurringPayments = includeRecurring ? get().getTodaysRecurringPayments() : 0;
-        return totalIncome - totalExpenses - budgetAllocations - todaysRecurringPayments;
-      },
     }),
     {
       name: 'budget-storage',

@@ -53,7 +53,7 @@ const Login = () => {
           <div className="flex justify-center mb-4">
             <Logo />
           </div>
-          <h1 className="text-2xl font-bold text-base-content">¡Bienvenido de nuevo!</h1>
+          <h1 className="text-3xl font-extrabold text-base-content">¡Bienvenido de nuevo!</h1>
           <p className="text-base-content/70 mt-2">Inicia sesión para continuar en MoneyTalk</p>
         </div>
         

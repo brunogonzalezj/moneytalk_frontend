@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Plus, Target, Calendar, TrendingUp, CreditCard as Edit, Trash2, PiggyBank } from 'lucide-react';
+import { Plus, Target, Calendar, TrendingUp, Edit, Trash2, PiggyBank } from 'lucide-react';
 import { useBudgetStore, Budget, BudgetType, BudgetStatus } from '../stores/budgetStore';
 import { useForm } from 'react-hook-form';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import StatCard from '../components/ui/StatCard';
 import formatCurrency from '../utils/formatCurrency';
-import toast from 'react-hot-toast';
 
 interface BudgetFormValues {
   name: string;
@@ -116,21 +116,28 @@ const Budgets = () => {
 
   const getStatusColor = (status: BudgetStatus) => {
     const colors = {
-      ACTIVE: 'bg-primary-100 text-primary-800',
-      COMPLETED: 'bg-green-100 text-green-800',
-      PAUSED: 'bg-yellow-100 text-yellow-800',
-      CANCELLED: 'bg-red-100 text-red-800',
+      ACTIVE: 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200',
+      COMPLETED: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+      PAUSED: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+      CANCELLED: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
     };
     return colors[status];
+  };
+
+  const statusLabels: Record<BudgetStatus, string> = {
+    ACTIVE: 'Activo',
+    COMPLETED: 'Completado',
+    PAUSED: 'Pausado',
+    CANCELLED: 'Cancelado',
   };
 
   const totalAllocations = getTotalBudgetAllocations();
 
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-col md:flex-row justify-between items-start mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Presupuestos y Metas</h1>
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-gray-50">Presupuestos y Metas</h1>
           <p className="text-gray-600 dark:text-gray-400">Administra tus metas de ahorro y presupuestos</p>
         </div>
         
@@ -147,34 +154,12 @@ const Budgets = () => {
         </Button>
       </div>
 
-      {/* Summary Card */}
-      <Card className="mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <PiggyBank className="h-8 w-8 text-primary-600 dark:text-primary-400" />
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Presupuestos</p>
-            <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{budgets.length}</p>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <Target className="h-8 w-8 text-primary-600 dark:text-primary-400" />
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Asignación Mensual</p>
-            <p className="text-xl font-bold text-primary-600 dark:text-primary-400">{formatCurrency(totalAllocations)}</p>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center mb-2">
-              <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Presupuestos Activos</p>
-            <p className="text-xl font-bold text-green-600 dark:text-green-400">
-              {budgets.filter(b => b.status === 'ACTIVE').length}
-            </p>
-          </div>
-        </div>
-      </Card>
+      {/* Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+        <StatCard label="Total Presupuestos" value={budgets.length} icon={PiggyBank} tone="neutral" />
+        <StatCard label="Asignación Mensual" value={formatCurrency(totalAllocations)} icon={Target} tone="primary" featured />
+        <StatCard label="Presupuestos Activos" value={budgets.filter(b => b.status === 'ACTIVE').length} icon={TrendingUp} tone="primary" />
+      </div>
 
       {/* Budget Form */}
       {showForm && (
@@ -297,13 +282,13 @@ const Budgets = () => {
       {/* Budgets List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {budgets.map((budget) => (
-          <Card key={budget.id} className="hover:shadow-md transition-shadow">
+          <Card key={budget.id} hoverable>
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{budget.name}</h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-50">{budget.name}</h3>
                 <div className="flex items-center space-x-2 mt-1">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(budget.status)}`}>
-                    {budget.status}
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(budget.status)}`}>
+                    {statusLabels[budget.status] ?? budget.status}
                   </span>
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     {getBudgetTypeLabel(budget.type)}
@@ -313,13 +298,15 @@ const Budgets = () => {
               <div className="flex space-x-1">
                 <button
                   onClick={() => handleEdit(budget)}
-                  className="p-1 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300"
+                  aria-label="Editar presupuesto"
+                  className="p-2 sm:p-1 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   <Edit size={16} />
                 </button>
                 <button
                   onClick={() => handleDelete(budget.id)}
-                  className="p-1 rounded-md text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400"
+                  aria-label="Eliminar presupuesto"
+                  className="p-2 sm:p-1 rounded-md text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400"
                 >
                   <Trash2 size={16} />
                 </button>

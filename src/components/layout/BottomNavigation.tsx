@@ -14,7 +14,7 @@ const BottomNavigation = () => {
           <NavLink 
             to="/dashboard"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] ${
+              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] active:scale-95 ${
                 isActive
                   ? 'text-primary-600 dark:text-primary-400'
                   : 'text-gray-500 dark:text-gray-400'
@@ -24,11 +24,11 @@ const BottomNavigation = () => {
             {({ isActive }) => (
               <>
                 <div className={`p-2 rounded-xl transition-all duration-200 ${
-                  isActive ? 'bg-primary-100 dark:bg-primary-900 scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  isActive ? 'bg-primary-600 text-white shadow-[0_4px_10px_-2px_rgba(5,150,105,0.5)] scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}>
                   <LayoutDashboard size={20} />
                 </div>
-                <span className="text-xs font-medium mt-1">Inicio</span>
+                <span className="text-xs font-semibold mt-1">Inicio</span>
               </>
             )}
           </NavLink>
@@ -37,7 +37,7 @@ const BottomNavigation = () => {
           <NavLink 
             to="/transactions"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] ${
+              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] active:scale-95 ${
                 isActive
                   ? 'text-primary-600 dark:text-primary-400'
                   : 'text-gray-500 dark:text-gray-400'
@@ -47,11 +47,11 @@ const BottomNavigation = () => {
             {({ isActive }) => (
               <>
                 <div className={`p-2 rounded-xl transition-all duration-200 ${
-                  isActive ? 'bg-primary-100 dark:bg-primary-900 scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  isActive ? 'bg-primary-600 text-white shadow-[0_4px_10px_-2px_rgba(5,150,105,0.5)] scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}>
                   <ListOrdered size={20} />
                 </div>
-                <span className="text-xs font-medium mt-1">Lista</span>
+                <span className="text-xs font-semibold mt-1">Lista</span>
               </>
             )}
           </NavLink>
@@ -61,7 +61,7 @@ const BottomNavigation = () => {
           <NavLink 
             to="/budgets"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] ${
+              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] active:scale-95 ${
                 isActive
                   ? 'text-primary-600 dark:text-primary-400'
                   : 'text-gray-500 dark:text-gray-400'
@@ -71,11 +71,11 @@ const BottomNavigation = () => {
             {({ isActive }) => (
               <>
                 <div className={`p-2 rounded-xl transition-all duration-200 ${
-                  isActive ? 'bg-primary-100 dark:bg-primary-900 scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  isActive ? 'bg-primary-600 text-white shadow-[0_4px_10px_-2px_rgba(5,150,105,0.5)] scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}>
                   <PiggyBank size={20} />
                 </div>
-                <span className="text-xs font-medium mt-1">Metas</span>
+                <span className="text-xs font-semibold mt-1">Metas</span>
               </>
             )}
           </NavLink>
@@ -84,7 +84,7 @@ const BottomNavigation = () => {
           <NavLink
             to="/recurring-payments"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] ${
+              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] active:scale-95 ${
                 isActive
                   ? 'text-primary-600 dark:text-primary-400'
                   : 'text-gray-500 dark:text-gray-400'
@@ -94,11 +94,11 @@ const BottomNavigation = () => {
             {({ isActive }) => (
               <>
                 <div className={`p-2 rounded-xl transition-all duration-200 ${
-                  isActive ? 'bg-primary-100 dark:bg-primary-900 scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  isActive ? 'bg-primary-600 text-white shadow-[0_4px_10px_-2px_rgba(5,150,105,0.5)] scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}>
                   <RefreshCw size={20} />
                 </div>
-                <span className="text-xs font-medium mt-1">Pagos</span>
+                <span className="text-xs font-semibold mt-1">Pagos</span>
               </>
             )}
           </NavLink>
@@ -107,7 +107,7 @@ const BottomNavigation = () => {
           <NavLink
             to="/reports"
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] ${
+              `flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 min-w-[60px] active:scale-95 ${
                 isActive
                   ? 'text-primary-600 dark:text-primary-400'
                   : 'text-gray-500 dark:text-gray-400'
@@ -117,11 +117,11 @@ const BottomNavigation = () => {
             {({ isActive }) => (
               <>
                 <div className={`p-2 rounded-xl transition-all duration-200 ${
-                  isActive ? 'bg-primary-100 dark:bg-primary-900 scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  isActive ? 'bg-primary-600 text-white shadow-[0_4px_10px_-2px_rgba(5,150,105,0.5)] scale-110' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}>
                   <BarChart3 size={20} />
                 </div>
-                <span className="text-xs font-medium mt-1">Reportes</span>
+                <span className="text-xs font-semibold mt-1">Reportes</span>
               </>
             )}
           </NavLink>
