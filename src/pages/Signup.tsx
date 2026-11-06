@@ -5,6 +5,7 @@ import { User, KeyRound, Mail, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import Button from '../components/ui/Button';
 import Logo from '../components/layout/Logo';
+import GoogleSignIn from '../components/GoogleSignIn';
 
 interface SignupFormValues {
   displayName: string;
@@ -45,13 +46,13 @@ const Signup = () => {
   
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center px-4">
-      <div className="card bg-white shadow-xl max-w-md w-full p-8 animate-fade-in">
+      <div className="card bg-base-100 shadow-xl max-w-md w-full p-8 animate-fade-in">
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-4">
             <Logo />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Crear Cuenta</h1>
-          <p className="text-gray-600 mt-2">Únete a MoneyTalk hoy</p>
+          <h1 className="text-2xl font-bold text-base-content">Crear Cuenta</h1>
+          <p className="text-base-content/70 mt-2">Únete a MoneyTalk hoy</p>
         </div>
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -60,7 +61,7 @@ const Signup = () => {
               <span className="label-text font-medium">Nombre</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/30">
                 <User size={18} />
               </span>
               <input
@@ -84,7 +85,7 @@ const Signup = () => {
               <span className="label-text font-medium">Correo Electrónico</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/30">
                 <Mail size={18} />
               </span>
               <input
@@ -112,14 +113,14 @@ const Signup = () => {
               <span className="label-text font-medium">Contraseña</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/30">
                 <KeyRound size={18} />
               </span>
               <input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="********"
                 className={`input input-bordered w-full pl-10 ${errors.password ? 'input-error' : ''}`}
-                {...register('password', { 
+                {...register('password', {
                   required: 'La contraseña es requerida',
                   minLength: {
                     value: 6,
@@ -129,7 +130,7 @@ const Signup = () => {
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-base-content/30 hover:text-base-content/60"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -147,7 +148,7 @@ const Signup = () => {
               <span className="label-text font-medium">Confirmar Contraseña</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/30">
                 <KeyRound size={18} />
               </span>
               <input
@@ -176,9 +177,13 @@ const Signup = () => {
             Crear Cuenta
           </Button>
         </form>
-        
+
+        <div className="mt-6">
+          <GoogleSignIn mode="signup" onSuccess={() => navigate('/dashboard', { replace: true })} />
+        </div>
+
         <div className="text-center mt-6">
-          <p className="text-gray-600">
+          <p className="text-base-content/70">
             ¿Ya tienes una cuenta?{' '}
             <Link to="/login" className="text-primary font-medium hover:underline">
               Iniciar Sesión

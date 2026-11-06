@@ -86,9 +86,10 @@ export const useAIStore = create<AIState>()(
           }
 
           console.log('Fetching fresh AI recommendations...');
-          
+
           const response = await apiClient.post('/ai/recommendations', {
-            userId: parseInt(user.id)
+            userId: parseInt(user.id),
+            forceRefresh: forceRefresh
           });
 
           let fetchedRecommendations: AIRecommendation[] = [];

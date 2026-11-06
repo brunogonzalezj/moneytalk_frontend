@@ -148,8 +148,8 @@ const RecurringPayments = () => {
     <div className="animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Pagos Recurrentes</h1>
-          <p className="text-gray-600">Administra tus pagos automáticos y suscripciones</p>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Pagos Recurrentes</h1>
+          <p className="text-gray-600 dark:text-gray-400">Administra tus pagos automáticos y suscripciones</p>
         </div>
         
         <Button
@@ -170,24 +170,24 @@ const RecurringPayments = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
-              <RefreshCw className="h-8 w-8 text-primary-600" />
+              <RefreshCw className="h-8 w-8 text-primary-600 dark:text-primary-400" />
             </div>
-            <p className="text-sm text-gray-500">Total Pagos</p>
-            <p className="text-xl font-bold text-gray-800">{recurringPayments.length}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Pagos</p>
+            <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{recurringPayments.length}</p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
-              <Calendar className="h-8 w-8 text-accent-600" />
+              <Calendar className="h-8 w-8 text-accent-600 dark:text-accent-400" />
             </div>
-            <p className="text-sm text-gray-500">Gasto Mensual</p>
-            <p className="text-xl font-bold text-accent-600">{formatCurrency(totalMonthlyPayments)}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Gasto Mensual</p>
+            <p className="text-xl font-bold text-accent-600 dark:text-accent-400">{formatCurrency(totalMonthlyPayments)}</p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
-              <Clock className="h-8 w-8 text-green-600" />
+              <Clock className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
-            <p className="text-sm text-gray-500">Pagos Activos</p>
-            <p className="text-xl font-bold text-green-600">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Pagos Activos</p>
+            <p className="text-xl font-bold text-green-600 dark:text-green-400">
               {recurringPayments.filter(p => p.status === 'ACTIVE').length}
             </p>
           </div>
@@ -246,7 +246,7 @@ const RecurringPayments = () => {
                   <span className="label-text font-medium">Monto</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Bs</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">Bs</span>
                   <input
                     type="number"
                     step="0.01"
@@ -346,7 +346,7 @@ const RecurringPayments = () => {
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-800">{payment.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{payment.name}</h3>
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -355,7 +355,7 @@ const RecurringPayments = () => {
                       onChange={() => handleToggleStatus(payment)}
                       title={payment.status === 'ACTIVE' ? 'Desactivar pago' : 'Activar pago'}
                     />
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       {payment.status === 'ACTIVE' ? 'Activo' : 'Pausado'}
                     </span>
                   </div>
@@ -364,7 +364,7 @@ const RecurringPayments = () => {
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(payment.status)}`}>
                     {payment.status}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     {payment.category}
                   </span>
                 </div>
@@ -372,13 +372,13 @@ const RecurringPayments = () => {
               <div className="flex space-x-1 ml-2">
                 <button
                   onClick={() => handleEdit(payment)}
-                  className="p-1 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                  className="p-1 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   <Edit size={16} />
                 </button>
                 <button
                   onClick={() => handleDelete(payment.id)}
-                  className="p-1 rounded-md text-gray-500 hover:bg-red-100 hover:text-red-600"
+                  className="p-1 rounded-md text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -386,33 +386,33 @@ const RecurringPayments = () => {
             </div>
 
             {payment.description && (
-              <p className="text-gray-600 text-sm mb-4">{payment.description}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{payment.description}</p>
             )}
 
             <div className="space-y-3">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Monto</span>
-                <span className="text-lg font-bold text-accent-600">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Monto</span>
+                <span className="text-lg font-bold text-accent-600 dark:text-accent-400">
                   {formatCurrency(payment.amount)}
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Frecuencia</span>
-                <span className="text-sm font-medium">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Frecuencia</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {getFrequencyLabel(payment.frequency)}
                 </span>
               </div>
 
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Próximo Pago</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Próximo Pago</span>
                 <div className="text-right">
-                  <div className="text-sm font-medium">
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {payment.nextPaymentDate && !isNaN(new Date(payment.nextPaymentDate).getTime())
                       ? new Date(payment.nextPaymentDate).toLocaleDateString('es-ES')
                       : 'Fecha no disponible'}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     {getNextPaymentDays(payment.nextPaymentDate)}
                   </div>
                 </div>
@@ -420,8 +420,8 @@ const RecurringPayments = () => {
 
               {payment.lastPaymentDate && (
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Último Pago</span>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Último Pago</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {new Date(payment.lastPaymentDate).toLocaleDateString('es-ES')}
                   </span>
                 </div>
@@ -433,9 +433,9 @@ const RecurringPayments = () => {
 
       {recurringPayments.length === 0 && !isLoading && (
         <Card className="text-center py-12">
-          <RefreshCw size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-800 mb-2">No tienes pagos recurrentes</h3>
-          <p className="text-gray-600 mb-4">
+          <RefreshCw size={48} className="mx-auto text-gray-400 dark:text-gray-600 mb-4" />
+          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-2">No tienes pagos recurrentes</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             Agrega tus suscripciones y pagos automáticos para un mejor control financiero
           </p>
           <Button

@@ -51,40 +51,121 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling
+// Add response interceptor for error handling and automatic token refresh
 apiClient.interceptors.response.use(
   (response) => {
     console.log('✅ API Response Success:', response.config.url, response.status);
     return response;
   },
-  (error: AxiosError) => {
+  async (error: AxiosError) => {
     console.log('❌ API Response Error:', error.config?.url, error.response?.status);
     console.log('Error details:', error.response?.data);
-    
+
+    const originalRequest = error.config;
+
     // Handle network errors
     if (!error.response) {
       toast.error('Network error. Please check your connection.');
       return Promise.reject(error);
     }
-    
-    // Handle API errors
+
+    // Handle 401 - Try to refresh token automatically
+    if (error.response.status === 401 && !originalRequest?._retry) {
+      console.log('🔄 Attempting to refresh token...');
+
+      try {
+        // Mark request to prevent infinite retry loop
+        originalRequest._retry = true;
+
+        // Get refresh token from localStorage
+        const authStorage = localStorage.getItem('auth-storage');
+        if (!authStorage) {
+          throw new Error('No refresh token available');
+        }
+
+        const authState = JSON.parse(authStorage);
+        // Note: We'll need to store refresh token separately or modify the store
+        // For now, let's add a simple refresh token storage
+        let refreshToken = localStorage.getItem('refreshToken');
+
+        if (!refreshToken) {
+          // Fallback: try to get it from the auth state structure
+          refreshToken = authState.state?.refreshToken;
+        }
+
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        console.log('🔄 Sending refresh token request...');
+
+        // Attempt to refresh the token
+        const refreshResponse = await axios.post(
+          `${import.meta.env.VITE_API_URL}/auth/refresh`,
+          { refreshToken }
+        );
+
+        const { accessToken, refreshToken: newRefreshToken, user } = refreshResponse.data;
+
+        // Update the auth store with new tokens
+        const authStore = useAuthStore.getState();
+        authStore.token = accessToken;
+
+        // Save new refresh token
+        localStorage.setItem('refreshToken', newRefreshToken);
+
+        // Update localStorage for persistence
+        const updatedStorage = {
+          ...authState,
+          state: {
+            ...authState.state,
+            token: accessToken,
+            isAuthenticated: true
+          }
+        };
+        localStorage.setItem('auth-storage', JSON.stringify(updatedStorage));
+
+        console.log('✅ Token refreshed successfully');
+
+        // Retry the original request with new token
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        }
+
+        return apiClient(originalRequest);
+
+      } catch (refreshError) {
+        console.error('❌ Token refresh failed:', refreshError);
+
+        // Clear auth on refresh failure
+        localStorage.removeItem('refreshToken');
+        useAuthStore.getState().logout();
+        toast.error('Session expired. Please log in again.');
+
+        return Promise.reject(refreshError);
+      }
+    }
+
+    // Handle API errors (non-401 or already retried)
     const { status, data } = error.response;
-    
+
     switch (status) {
       case 401:
-        // Unauthorized - clear auth
-        toast.error('Session expired. Please log in again.');
-        useAuthStore.getState().logout();
+        // Already tried refresh or refresh failed - clear auth
+        if (originalRequest?._retry) {
+          toast.error('Session expired. Please log in again.');
+          useAuthStore.getState().logout();
+        }
         break;
-        
+
       case 403:
         toast.error('You do not have permission to perform this action.');
         break;
-        
+
       case 404:
         toast.error('Resource not found.');
         break;
-        
+
       case 422:
         // Validation errors
         if ((data as any).errors) {
@@ -95,15 +176,15 @@ apiClient.interceptors.response.use(
           toast.error('Validation failed. Please check your input.');
         }
         break;
-        
+
       case 500:
         toast.error('Server error. Please try again later.');
         break;
-        
+
       default:
         toast.error((data as any).message || 'Something went wrong. Please try again.');
     }
-    
+
     return Promise.reject(error);
   }
 );

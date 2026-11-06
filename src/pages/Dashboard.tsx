@@ -11,27 +11,28 @@ import Button from '../components/ui/Button';
 import { useAuthStore } from '../stores/authStore';
 
 const Dashboard = () => {
-  const { fetchTransactions, transactions, getTodaysSummary, getWeeklyData } = useTransactionStore();
-  const { fetchBudgets, fetchRecurringPayments, getTotalBudgetAllocations, getTotalRecurringPayments, getAvailableBalance } = useBudgetStore();
+  const { fetchTransactions, fetchAllTransactionsForCalculations, transactions, getTodaysSummary, getWeeklyData, getTotalBalance } = useTransactionStore();
+  const { fetchBudgets, fetchRecurringPayments, getTotalBudgetAllocations, getTotalRecurringPayments } = useBudgetStore();
   const { recommendations, isLoading: isLoadingRecommendations, fetchRecommendations } = useAIStore();
   const { user } = useAuthStore();
-  const [includeRecurringPayments, setIncludeRecurringPayments] = useState(true);
   
   useEffect(() => {
     // Solo hacer fetch si hay usuario autenticado
     if (user) {
       console.log('Dashboard: Fetching transactions for user:', user.id);
-      fetchTransactions();
+      fetchAllTransactionsForCalculations(); // Cargar TODAS las transacciones para cálculos
       fetchBudgets();
       fetchRecurringPayments();
       fetchRecommendations(); // This will check cache automatically
     }
-  }, [fetchTransactions, fetchBudgets, fetchRecurringPayments, fetchRecommendations, user]);
+  }, [fetchAllTransactionsForCalculations, fetchBudgets, fetchRecurringPayments, fetchRecommendations, user]);
   
-  const { income, expense, net } = getTodaysSummary();
+  const { income: todayIncome, expense: todayExpense, net: todayNet } = getTodaysSummary();
+  const { income: totalIncome, expense: totalExpense, net: totalNet } = getTotalBalance();
   const budgetAllocations = getTotalBudgetAllocations();
-  const recurringPayments = getTotalRecurringPayments();
-  const availableBalance = getAvailableBalance(income, expense, includeRecurringPayments);
+  const totalRecurringPayments = getTotalRecurringPayments();
+  // Usar el mismo cálculo que los reportes: Balance Neto = Ingresos - Gastos
+  const netBalance = totalNet;
   const weeklyData = getWeeklyData();
 
   const handleReloadRecommendations = async () => {
@@ -64,8 +65,8 @@ const Dashboard = () => {
     <div className="animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">¡{getGreeting()}, {user?.displayName || 'usuario'}!</h1>
-          <p className="text-gray-600">Aquí está el resumen de tus finanzas de hoy.</p>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">¡{getGreeting()}, {user?.displayName || 'usuario'}!</h1>
+          <p className="text-gray-600 dark:text-gray-300">Aquí está el resumen de tus finanzas de hoy.</p>
         </div>
         
         <Link to="/transactions/new" className="mt-4 md:mt-0">
@@ -80,23 +81,11 @@ const Dashboard = () => {
         <Card className="hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Ingresos de Hoy</p>
-              <h3 className="text-xl font-bold text-gray-800">{formatCurrency(income)}</h3>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Ingresos de Hoy</p>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency(todayIncome)}</h3>
             </div>
-            <div className="p-3 bg-primary-100 rounded-full">
-              <ArrowUpCircle className="h-6 w-6 text-primary-600" />
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="hover:shadow-md transition-shadow">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Gastos de Hoy</p>
-              <h3 className="text-xl font-bold text-gray-800">{formatCurrency(expense)}</h3>
-            </div>
-            <div className="p-3 bg-accent-100 rounded-full">
-              <ArrowDownCircle className="h-6 w-6 text-accent-600" />
+            <div className="p-3 bg-primary-100 dark:bg-primary-900 rounded-full">
+              <ArrowUpCircle className="h-6 w-6 text-primary-600 dark:text-primary-400" />
             </div>
           </div>
         </Card>
@@ -104,58 +93,55 @@ const Dashboard = () => {
         <Card className="hover:shadow-md transition-shadow">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Balance Disponible</p>
-              <h3 className={`text-xl font-bold ${availableBalance >= 0 ? 'text-primary-600' : 'text-accent-500'}`}>
-                {formatCurrency(availableBalance)}
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Gastos de Hoy</p>
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency(todayExpense)}</h3>
+            </div>
+            <div className="p-3 bg-accent-100 dark:bg-accent-900 rounded-full">
+              <ArrowDownCircle className="h-6 w-6 text-accent-600 dark:text-accent-400" />
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="hover:shadow-md transition-shadow">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Balance Neto</p>
+              <h3 className={`text-xl font-bold ${netBalance >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-accent-500 dark:text-accent-400'}`}>
+                {formatCurrency(netBalance)}
               </h3>
-              <p className="text-xs text-gray-400 mt-1">
-                Después de presupuestos{includeRecurringPayments ? ' y pagos recurrentes' : ''}
-              </p>
-              <div className="flex items-center mt-2">
-                <input
-                  type="checkbox"
-                  id="includeRecurring"
-                  className="toggle toggle-primary toggle-sm"
-                  checked={includeRecurringPayments}
-                  onChange={(e) => setIncludeRecurringPayments(e.target.checked)}
-                />
-                <label htmlFor="includeRecurring" className="ml-2 text-xs text-gray-500 cursor-pointer">
-                  Incluir pagos recurrentes
-                </label>
-              </div>
             </div>
-            <div className={`p-3 rounded-full ${availableBalance >= 0 ? 'bg-primary-100' : 'bg-accent-100'}`}>
-              <TrendingUp className={`h-6 w-6 ${availableBalance >= 0 ? 'text-primary-600' : 'text-accent-600'}`} />
+            <div className={`p-3 rounded-full ${netBalance >= 0 ? 'bg-primary-100 dark:bg-primary-900' : 'bg-accent-100 dark:bg-accent-900'}`}>
+              <TrendingUp className={`h-6 w-6 ${netBalance >= 0 ? 'text-primary-600 dark:text-primary-400' : 'text-accent-600 dark:text-accent-400'}`} />
             </div>
           </div>
         </Card>
       </div>
       
       {/* Budget and Recurring Payments Summary */}
-      {(budgetAllocations > 0 || recurringPayments > 0) && (
+      {(budgetAllocations > 0 || totalRecurringPayments > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {budgetAllocations > 0 && (
             <Card className="hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500 mb-1">Asignación Mensual a Presupuestos</p>
-                  <h3 className="text-lg font-bold text-blue-600">{formatCurrency(budgetAllocations)}</h3>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Asignación Mensual a Presupuestos</p>
+                  <h3 className="text-lg font-bold text-blue-600 dark:text-blue-400">{formatCurrency(budgetAllocations)}</h3>
                 </div>
-                <Link to="/budgets" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                <Link to="/budgets" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium">
                   Ver Presupuestos →
                 </Link>
               </div>
             </Card>
           )}
           
-          {recurringPayments > 0 && (
+          {totalRecurringPayments > 0 && (
             <Card className="hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500 mb-1">Pagos Recurrentes Mensuales</p>
-                  <h3 className="text-lg font-bold text-orange-600">{formatCurrency(recurringPayments)}</h3>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Pagos Recurrentes Mensuales</p>
+                  <h3 className="text-lg font-bold text-orange-600 dark:text-orange-400">{formatCurrency(totalRecurringPayments)}</h3>
                 </div>
-                <Link to="/recurring-payments" className="text-orange-600 hover:text-orange-800 text-sm font-medium">
+                <Link to="/recurring-payments" className="text-orange-600 dark:text-orange-400 hover:text-orange-800 dark:hover:text-orange-300 text-sm font-medium">
                   Ver Pagos →
                 </Link>
               </div>
@@ -179,8 +165,8 @@ const Dashboard = () => {
      <div className="mb-6">
        <div className="flex items-center justify-between mb-4">
          <div className="flex items-center">
-           <Brain className="h-6 w-6 text-primary-600 mr-2" />
-           <h2 className="text-xl font-bold text-gray-800">Recomendaciones Inteligentes</h2>
+           <Brain className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-2" />
+           <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Recomendaciones Inteligentes</h2>
          </div>
          <Button
            variant="outline"
@@ -194,10 +180,10 @@ const Dashboard = () => {
        </div>
        
        {isLoadingRecommendations ? (
-         <div className="bg-white rounded-lg border border-gray-200 p-6">
+         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
            <div className="animate-pulse">
-             <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-             <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
            </div>
          </div>
        ) : (
@@ -217,8 +203,8 @@ const Dashboard = () => {
                    }`} />
                  </div>
                  <div className="flex-1">
-                   <h3 className="font-semibold text-gray-800 mb-1">{recommendation.title}</h3>
-                   <p className="text-sm text-gray-600">{recommendation.description}</p>
+                   <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-1">{recommendation.title}</h3>
+                   <p className="text-sm text-gray-600 dark:text-gray-300">{recommendation.description}</p>
                  </div>
                </div>
              </Card>
@@ -230,17 +216,17 @@ const Dashboard = () => {
       {/* Transacciones Recientes */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-800">Transacciones Recientes</h2>
-          <Link to="/transactions" className="text-primary hover:underline text-sm font-medium">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Transacciones Recientes</h2>
+          <Link to="/transactions" className="text-primary dark:text-primary-400 hover:underline text-sm font-medium">
             Ver Todas
           </Link>
         </div>
         
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
           {transactions.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wider">
+                <thead className="bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <tr>
                     <th className="px-4 py-3">Fecha</th>
                     <th className="px-4 py-3">Descripción</th>
@@ -248,31 +234,31 @@ const Dashboard = () => {
                     <th className="px-4 py-3 text-right">Monto</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {transactions.slice(0, 5).map((transaction) => (
-                    <tr key={transaction.id} className="hover:bg-gray-50">
+                    <tr key={transaction.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="mr-3">
-                            <CalendarDays size={16} className="text-gray-400" />
+                            <CalendarDays size={16} className="text-gray-400 dark:text-gray-500" />
                           </div>
                           {formatDate(transaction.date)}
                         </div>
                       </td>
-                      <td className="px-4 py-3">{transaction.description}</td>
+                      <td className="px-4 py-3 text-gray-800 dark:text-gray-200">{transaction.description}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          transaction.type === 'INCOME' 
-                            ? 'bg-primary-100 text-primary-800' 
-                            : 'bg-accent-100 text-accent-800'
+                          transaction.type === 'INCOME'
+                            ? 'bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200'
+                            : 'bg-accent-100 dark:bg-accent-900 text-accent-800 dark:text-accent-200'
                         }`}>
                           {transaction.category}
                         </span>
                       </td>
                       <td className={`px-4 py-3 text-right whitespace-nowrap font-medium ${
                         transaction.type === 'INCOME'
-                          ? 'text-primary-600' 
-                          : 'text-accent-500'
+                          ? 'text-primary-600 dark:text-primary-400'
+                          : 'text-accent-500 dark:text-accent-400'
                       }`}>
                         {transaction.type === 'INCOME' ? '+' : '-'}{formatCurrency(transaction.amount)}
                       </td>
@@ -283,7 +269,7 @@ const Dashboard = () => {
             </div>
           ) : (
             <div className="px-4 py-8 text-center">
-              <p className="text-gray-500">No hay transacciones. ¡Comienza agregando una!</p>
+              <p className="text-gray-500 dark:text-gray-400">No hay transacciones. ¡Comienza agregando una!</p>
               <Link to="/transactions/new" className="mt-4 inline-block">
                 <Button variant="primary" size="sm" icon={<Plus size={16} />}>
                   Agregar Transacción

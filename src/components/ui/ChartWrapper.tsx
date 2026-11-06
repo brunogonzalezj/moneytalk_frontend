@@ -1,14 +1,14 @@
 import React from 'react';
-import { 
-  Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
   BarElement,
   ArcElement,
-  Title, 
-  Tooltip, 
+  Title,
+  Tooltip,
   Legend,
   ChartData,
   ChartOptions
@@ -78,8 +78,8 @@ const ChartWrapper: React.FC<ChartWrapperProps> = ({
             }
             if (context.parsed.y !== null) {
               // Use the formatCurrency utility function
-              const value = typeof context.parsed === 'number' ? context.parsed : 
-                           typeof context.parsed.y === 'number' ? context.parsed.y : 
+              const value = typeof context.parsed === 'number' ? context.parsed :
+                           typeof context.parsed.y === 'number' ? context.parsed.y :
                            context.parsed;
               label += new Intl.NumberFormat('es-BO', {
                 style: 'currency',

@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import formatCurrency from '../utils/formatCurrency';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 
 interface BudgetFormValues {
@@ -14,14 +13,8 @@ interface BudgetFormValues {
   type: BudgetType;
   targetAmount: number;
   targetDate: string;
-  categoryId: number;
 }
 
-interface Category {
-  id: number;
-  name: string;
-  type: string;
-}
 
 const Budgets = () => {
   const { 
@@ -39,30 +32,12 @@ const Budgets = () => {
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [addingToBudget, setAddingToBudget] = useState<string | null>(null);
   const [addAmount, setAddAmount] = useState('');
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<BudgetFormValues>();
 
   useEffect(() => {
     fetchBudgets();
   }, [fetchBudgets]);
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoadingCategories(true);
-        const response = await axios.get('http://localhost:3000/api/categories');
-        setCategories(response.data);
-      } catch (error) {
-        console.error('Error al obtener categorías:', error);
-        toast.error('Error al cargar categorías');
-      } finally {
-        setLoadingCategories(false);
-      }
-    };
-    fetchCategories();
-  }, []);
 
   const onSubmit = async (data: BudgetFormValues) => {
     try {
@@ -105,7 +80,6 @@ const Budgets = () => {
       type: budget.type,
       targetAmount: budget.targetAmount,
       targetDate: dateValue,
-      categoryId: 1,
     });
     setShowForm(true);
   };
@@ -156,8 +130,8 @@ const Budgets = () => {
     <div className="animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Presupuestos y Metas</h1>
-          <p className="text-gray-600">Administra tus metas de ahorro y presupuestos</p>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Presupuestos y Metas</h1>
+          <p className="text-gray-600 dark:text-gray-400">Administra tus metas de ahorro y presupuestos</p>
         </div>
         
         <Button
@@ -178,24 +152,24 @@ const Budgets = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
-              <PiggyBank className="h-8 w-8 text-primary-600" />
+              <PiggyBank className="h-8 w-8 text-primary-600 dark:text-primary-400" />
             </div>
-            <p className="text-sm text-gray-500">Total Presupuestos</p>
-            <p className="text-xl font-bold text-gray-800">{budgets.length}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Presupuestos</p>
+            <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{budgets.length}</p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
-              <Target className="h-8 w-8 text-primary-600" />
+              <Target className="h-8 w-8 text-primary-600 dark:text-primary-400" />
             </div>
-            <p className="text-sm text-gray-500">Asignación Mensual</p>
-            <p className="text-xl font-bold text-primary-600">{formatCurrency(totalAllocations)}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Asignación Mensual</p>
+            <p className="text-xl font-bold text-primary-600 dark:text-primary-400">{formatCurrency(totalAllocations)}</p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center mb-2">
-              <TrendingUp className="h-8 w-8 text-green-600" />
+              <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
-            <p className="text-sm text-gray-500">Presupuestos Activos</p>
-            <p className="text-xl font-bold text-green-600">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Presupuestos Activos</p>
+            <p className="text-xl font-bold text-green-600 dark:text-green-400">
               {budgets.filter(b => b.status === 'ACTIVE').length}
             </p>
           </div>
@@ -247,58 +221,28 @@ const Budgets = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium">Categoría</span>
-                </label>
-                <select
-                  className={`select select-bordered w-full ${errors.categoryId ? 'select-error' : ''}`}
-                  {...register('categoryId', {
-                    required: 'La categoría es requerida',
-                    valueAsNumber: true
+            <div className="form-control mb-4">
+              <label className="label">
+                <span className="label-text font-medium">Monto Objetivo</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">Bs</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  className={`input input-bordered w-full pl-8 ${errors.targetAmount ? 'input-error' : ''}`}
+                  {...register('targetAmount', {
+                    required: 'El monto objetivo es requerido',
+                    min: { value: 0.01, message: 'El monto debe ser mayor a 0' }
                   })}
-                  disabled={loadingCategories}
-                >
-                  <option value="">
-                    {loadingCategories ? 'Cargando categorías...' : 'Selecciona una categoría'}
-                  </option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name} ({cat.type === 'INCOME' ? 'Ingreso' : 'Gasto'})
-                    </option>
-                  ))}
-                </select>
-                {errors.categoryId && (
-                  <label className="label">
-                    <span className="label-text-alt text-error">{errors.categoryId.message}</span>
-                  </label>
-                )}
+                />
               </div>
-
-              <div className="form-control">
+              {errors.targetAmount && (
                 <label className="label">
-                  <span className="label-text font-medium">Monto Objetivo</span>
+                  <span className="label-text-alt text-error">{errors.targetAmount.message}</span>
                 </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Bs</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    className={`input input-bordered w-full pl-8 ${errors.targetAmount ? 'input-error' : ''}`}
-                    {...register('targetAmount', {
-                      required: 'El monto objetivo es requerido',
-                      min: { value: 0.01, message: 'El monto debe ser mayor a 0' }
-                    })}
-                  />
-                </div>
-                {errors.targetAmount && (
-                  <label className="label">
-                    <span className="label-text-alt text-error">{errors.targetAmount.message}</span>
-                  </label>
-                )}
-              </div>
+              )}
             </div>
 
             <div className="form-control mb-4">
@@ -312,7 +256,7 @@ const Budgets = () => {
                 {...register('targetDate')}
               />
               <label className="label">
-                <span className="label-text-alt text-gray-500">
+                <span className="label-text-alt text-gray-500 dark:text-gray-400">
                   Si no especificas una fecha, se establecerá automáticamente a 1 año
                 </span>
               </label>
@@ -356,12 +300,12 @@ const Budgets = () => {
           <Card key={budget.id} className="hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-800">{budget.name}</h3>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{budget.name}</h3>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(budget.status)}`}>
                     {budget.status}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
                     {getBudgetTypeLabel(budget.type)}
                   </span>
                 </div>
@@ -369,13 +313,13 @@ const Budgets = () => {
               <div className="flex space-x-1">
                 <button
                   onClick={() => handleEdit(budget)}
-                  className="p-1 rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                  className="p-1 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   <Edit size={16} />
                 </button>
                 <button
                   onClick={() => handleDelete(budget.id)}
-                  className="p-1 rounded-md text-gray-500 hover:bg-red-100 hover:text-red-600"
+                  className="p-1 rounded-md text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900 hover:text-red-600 dark:hover:text-red-400"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -383,28 +327,28 @@ const Budgets = () => {
             </div>
 
             {budget.description && (
-              <p className="text-gray-600 text-sm mb-4">{budget.description}</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{budget.description}</p>
             )}
 
             <div className="mb-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">Progreso</span>
-                <span className="text-sm font-medium">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Progreso</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {formatCurrency(budget.currentAmount)} / {formatCurrency(budget.targetAmount)}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                 <div
                   className="bg-primary-500 h-3 rounded-full transition-all duration-300"
                   style={{ width: `${getProgressPercentage(budget.currentAmount, budget.targetAmount)}%` }}
                 />
               </div>
               <div className="flex justify-between items-center mt-1">
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
                   {getProgressPercentage(budget.currentAmount, budget.targetAmount).toFixed(1)}% completado
                 </span>
                 {budget.targetDate && (
-                  <span className="text-xs text-gray-500 flex items-center">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                     <Calendar size={12} className="mr-1" />
                     {new Date(budget.targetDate).toLocaleDateString('es-ES')}
                   </span>
@@ -417,7 +361,7 @@ const Budgets = () => {
                 {addingToBudget === budget.id ? (
                   <div className="flex space-x-2">
                     <div className="relative flex-1">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Bs</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">Bs</span>
                       <input
                         type="number"
                         step="0.01"
@@ -464,9 +408,9 @@ const Budgets = () => {
 
       {budgets.length === 0 && !isLoading && (
         <Card className="text-center py-12">
-          <PiggyBank size={48} className="mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-800 mb-2">No tienes presupuestos</h3>
-          <p className="text-gray-600 mb-4">
+          <PiggyBank size={48} className="mx-auto text-gray-400 dark:text-gray-600 mb-4" />
+          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-100 mb-2">No tienes presupuestos</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             Crea tu primer presupuesto para empezar a ahorrar para tus metas
           </p>
           <Button

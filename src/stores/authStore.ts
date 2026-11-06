@@ -8,6 +8,8 @@ export interface User {
   email: string;
   displayName?: string;
   name?: string;
+  avatar?: string;
+  provider?: 'email' | 'google';
 }
 
 interface AuthState {
@@ -17,9 +19,11 @@ interface AuthState {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, displayName: string) => Promise<void>;
+  loginWithGoogle: (token: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -50,12 +54,19 @@ export const useAuthStore = create<AuthState>()(
               email: user.email,
               displayName: user.name || user.displayName,
               name: user.name,
+              avatar: user.avatar,
+              provider: 'email',
             },
             token: accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
-          
+
+          // Guardar refresh token en localStorage
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+          }
+
           // Verificar que se guardó correctamente
           setTimeout(() => {
             const stored = localStorage.getItem('auth-storage');
@@ -79,26 +90,33 @@ export const useAuthStore = create<AuthState>()(
       signup: async (email, password, displayName) => {
         try {
           set({ isLoading: true });
-          const response = await apiClient.post('/auth/register', { 
-            email, 
-            password, 
-            name: displayName 
+          const response = await apiClient.post('/auth/signup', {
+            email,
+            password,
+            name: displayName
           });
-          
+
           const { user, accessToken, refreshToken } = response.data;
-          
+
           set({
             user: {
               id: String(user.id),
               email: user.email,
               displayName: user.name,
               name: user.name,
+              avatar: user.avatar,
+              provider: 'email',
             },
             token: accessToken,
             isAuthenticated: true,
             isLoading: false,
           });
-          
+
+          // Guardar refresh token en localStorage
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+          }
+
           toast.success('Cuenta creada exitosamente');
         } catch (error) {
           console.error('Error de registro:', error);
@@ -109,16 +127,56 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      loginWithGoogle: async (token) => {
+        try {
+          set({ isLoading: true });
+
+          const response = await apiClient.post('/auth/google', { token });
+
+          const { user, accessToken, refreshToken, isNewUser } = response.data;
+
+          set({
+            user: {
+              id: String(user.id),
+              email: user.email,
+              displayName: user.name,
+              name: user.name,
+              avatar: user.avatar,
+              provider: 'google',
+            },
+            token: accessToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+
+          // Guardar refresh token en localStorage
+          if (refreshToken) {
+            localStorage.setItem('refreshToken', refreshToken);
+          }
+
+          toast.success(isNewUser ? 'Cuenta creada con Google' : 'Sesión iniciada con Google');
+        } catch (error) {
+          console.error('Error de autenticación con Google:', error);
+          const errorMessage = (error as any)?.response?.data?.error || 'Error al autenticar con Google';
+          toast.error(errorMessage);
+          set({ isLoading: false });
+          throw error;
+        }
+      },
+
       logout: () => {
         // Llamar al endpoint de logout para limpiar la sesión
         apiClient.post('/auth/logout').catch(console.error);
-        
+
         set({
           user: null,
           token: null,
           isAuthenticated: false,
         });
-        
+
+        // Limpiar refresh token
+        localStorage.removeItem('refreshToken');
+
         toast.success('Sesión cerrada correctamente');
       },
 
@@ -186,9 +244,9 @@ export const useAuthStore = create<AuthState>()(
             name: data.displayName || data.name,
             email: data.email,
           });
-          
+
           const updatedUser = response.data.user || response.data;
-          
+
           set({
             user: {
               ...get().user!,
@@ -198,7 +256,7 @@ export const useAuthStore = create<AuthState>()(
               name: updatedUser.name,
             },
           });
-          
+
           toast.success('Perfil actualizado correctamente');
         } catch (error) {
           console.error('Error de actualización de perfil:', error);
@@ -206,10 +264,26 @@ export const useAuthStore = create<AuthState>()(
           throw error;
         }
       },
+
+      changePassword: async (currentPassword: string, newPassword: string) => {
+        try {
+          await apiClient.put('/auth/change-password', {
+            currentPassword,
+            newPassword,
+          });
+
+          toast.success('Contraseña cambiada exitosamente');
+        } catch (error) {
+          console.error('Error al cambiar contraseña:', error);
+          const errorMessage = (error as any)?.response?.data?.error || 'No se pudo cambiar la contraseña';
+          toast.error(errorMessage);
+          throw error;
+        }
+      },
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         user: state.user,
         token: state.token,
         isAuthenticated: state.isAuthenticated

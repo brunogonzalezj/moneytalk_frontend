@@ -1,48 +1,62 @@
 # Análisis de Casos de Uso - MoneyTalk Finance App
 
+## NOTA IMPORTANTE
+
+Este documento presenta un análisis conceptual del software MoneyTalk Finance App, enfocándose en **QUÉ** hace el software desde una perspectiva de negocio y requisitos, en lugar de **CÓMO** lo implementa técnicamente.
+
+### Nivel de Abstracción
+
+Los casos de uso y diagramas principales (Secciones 1 y 2) se presentan en **modo análisis**:
+- Lenguaje orientado al negocio y usuario final
+- Sin detalles técnicos de implementación (frameworks, APIs específicas, etc.)
+- Enfoque en funcionalidad y comportamiento del software
+- Independiente de tecnología
+
+Los diagramas técnicos adicionales (Secciones 3-7) se mantienen como referencia para fases posteriores de diseño e implementación.
+
+---
+
 ## 1. CASOS DE USO DETALLADOS
 
 ### CU-01: Gestión de Autenticación
 
 **Actores:** Usuario
 
-**Descripción:** Permite al usuario registrarse, iniciar sesión y cerrar sesión en la aplicación.
+**Descripción:** Permite al usuario acceder al software mediante registro o inicio de sesión, y salir cuando lo desee.
 
 **Precondiciones:**
-- La aplicación debe estar accesible
-- Para login: El usuario debe tener una cuenta registrada
-- Para registro: El email no debe estar registrado
+- El software debe estar disponible
+- Para iniciar sesión: El usuario debe estar registrado previamente
+- Para registrarse: El email no debe existir en el software
 
-**Flujo Principal (Login):**
-1. Usuario accede a la página de login
-2. Usuario ingresa email y contraseña
-3. Sistema valida las credenciales
-4. Sistema genera token JWT
-5. Sistema almacena token y datos de usuario
-6. Sistema redirige al dashboard
+**Flujo Principal (Iniciar Sesión):**
+1. Usuario solicita acceso al software
+2. Usuario proporciona credenciales de acceso
+3. Software verifica la identidad del usuario
+4. Software otorga acceso al usuario
+5. Software muestra la página principal
 
-**Flujo Alternativo (Registro):**
-1. Usuario accede a la página de registro
-2. Usuario ingresa email, contraseña y nombre
-3. Sistema valida que el email no exista
-4. Sistema crea cuenta con contraseña hasheada
-5. Sistema genera token JWT
-6. Sistema almacena token y datos de usuario
-7. Sistema redirige al dashboard
+**Flujo Alternativo (Registrarse):**
+1. Usuario solicita crear una cuenta nueva
+2. Usuario proporciona información personal
+3. Software valida la información proporcionada
+4. Software crea la cuenta del usuario
+5. Software otorga acceso automático
+6. Software muestra la página principal
 
-**Flujo Alternativo (Logout):**
-1. Usuario hace clic en cerrar sesión
-2. Sistema limpia token y datos de usuario
-3. Sistema redirige a página de login
+**Flujo Alternativo (Cerrar Sesión):**
+1. Usuario solicita salir del software
+2. Software cierra la sesión del usuario
+3. Software retorna a la página de acceso
 
 **Postcondiciones:**
-- Usuario autenticado con token válido almacenado
-- Acceso a funcionalidades protegidas habilitado
+- Usuario puede acceder a las funcionalidades del software
+- La sesión del usuario queda activa hasta que cierre sesión
 
 **Excepciones:**
-- E1: Credenciales incorrectas - Mostrar mensaje de error
-- E2: Email ya existe - Mostrar mensaje de error
-- E3: Error de red - Mostrar mensaje y mantener datos
+- E1: Credenciales incorrectas - Software notifica al usuario
+- E2: Email ya registrado - Software notifica al usuario
+- E3: Problemas de comunicación - Software notifica al usuario
 
 ---
 
@@ -50,118 +64,108 @@
 
 **Actores:** Usuario
 
-**Descripción:** Crear, editar, eliminar, buscar y visualizar transacciones financieras (ingresos y gastos).
+**Descripción:** Permite registrar, modificar, eliminar y consultar transacciones financieras de ingresos y gastos.
 
 **Precondiciones:**
-- Usuario debe estar autenticado
-- Para editar/eliminar: La transacción debe existir y pertenecer al usuario
+- Usuario debe tener acceso al software
+- Para modificar/eliminar: La transacción debe existir
 
 **Flujo Principal (Ver Transacciones):**
-1. Usuario accede a la página de transacciones
-2. Sistema carga lista de transacciones del usuario
-3. Sistema muestra transacciones paginadas (10 por página)
-4. Sistema muestra filtros disponibles
+1. Usuario solicita ver sus transacciones
+2. Software recupera las transacciones del usuario
+3. Software presenta las transacciones organizadas
+4. Software ofrece opciones de búsqueda y filtrado
 
-**Flujo Alternativo (Crear):**
-1. Usuario hace clic en "Nueva Transacción"
-2. Sistema muestra formulario
-3. Usuario completa: monto, descripción, categoría, tipo, fecha
-4. Usuario envía formulario
-5. Sistema valida datos
-6. Sistema crea transacción temporal en UI
-7. Sistema envía petición al backend
-8. Sistema actualiza con ID real
-9. Sistema muestra mensaje de éxito
-10. Sistema redirige a lista de transacciones
+**Flujo Alternativo (Crear Transacción):**
+1. Usuario solicita registrar nueva transacción
+2. Software solicita información de la transacción
+3. Usuario proporciona monto, descripción, categoría, tipo y fecha
+4. Software valida la información
+5. Software registra la transacción
+6. Software confirma el registro
+7. Software actualiza la lista de transacciones
 
-**Flujo Alternativo (Editar):**
-1. Usuario hace clic en icono de editar
-2. Sistema carga datos de la transacción
-3. Usuario modifica campos
-4. Usuario guarda cambios
-5. Sistema actualiza en UI
-6. Sistema envía cambios al backend
-7. Sistema muestra mensaje de éxito
+**Flujo Alternativo (Modificar Transacción):**
+1. Usuario selecciona una transacción existente
+2. Software presenta la información actual
+3. Usuario modifica los datos deseados
+4. Software valida los cambios
+5. Software actualiza la transacción
+6. Software confirma la modificación
 
-**Flujo Alternativo (Eliminar):**
-1. Usuario hace clic en icono de eliminar
-2. Sistema muestra confirmación
-3. Usuario confirma eliminación
-4. Sistema elimina de UI
-5. Sistema envía petición al backend
-6. Sistema muestra mensaje de éxito
+**Flujo Alternativo (Eliminar Transacción):**
+1. Usuario selecciona eliminar una transacción
+2. Software solicita confirmación
+3. Usuario confirma la eliminación
+4. Software elimina la transacción
+5. Software confirma la eliminación
 
-**Flujo Alternativo (Filtrar):**
-1. Usuario selecciona filtros (tipo, categoría, rango de fechas)
-2. Sistema aplica filtros en cliente
-3. Sistema muestra resultados filtrados
+**Flujo Alternativo (Filtrar Transacciones):**
+1. Usuario define criterios de búsqueda
+2. Software aplica los criterios especificados
+3. Software muestra las transacciones que cumplen los criterios
 
-**Flujo Alternativo (Paginar):**
-1. Usuario hace clic en siguiente/anterior
-2. Sistema carga página solicitada
-3. Sistema muestra transacciones de esa página
+**Flujo Alternativo (Navegar entre Páginas):**
+1. Usuario solicita ver más transacciones
+2. Software carga el siguiente conjunto de transacciones
+3. Software presenta las transacciones adicionales
 
 **Postcondiciones:**
-- Transacciones creadas/actualizadas/eliminadas correctamente
-- Lista de transacciones actualizada
-- Datos sincronizados con backend
+- Las transacciones quedan registradas en el software
+- La información se mantiene actualizada
+- El usuario puede consultar sus transacciones en cualquier momento
 
 **Excepciones:**
-- E1: Validación fallida - Mostrar errores en formulario
-- E2: Error de red - Si offline, guardar en outbox
-- E3: Error del servidor - Revertir cambio UI y mostrar error
-- E4: Sin transacciones - Mostrar mensaje y botón de crear
+- E1: Datos inválidos - Software notifica los errores al usuario
+- E2: Falta de conectividad - Software permite trabajar sin conexión
+- E3: Error en el proceso - Software notifica el problema al usuario
+- E4: Sin transacciones registradas - Software informa y ofrece crear una
 
 ---
 
 ### CU-03: Crear Transacción con Voz
 
-**Actores:** Usuario, Sistema de Reconocimiento de Voz (Web Speech API)
+**Actores:** Usuario, Software de Reconocimiento de Voz
 
-**Descripción:** Permite al usuario crear transacciones usando comandos de voz mediante la Web Speech API.
+**Descripción:** Permite al usuario registrar transacciones mediante comandos de voz.
 
 **Precondiciones:**
-- Usuario autenticado
-- Navegador compatible con Web Speech API
-- Permisos de micrófono concedidos
-- Usuario en página de nueva transacción
+- Usuario tiene acceso al software
+- Dispositivo cuenta con capacidad de reconocimiento de voz
+- Usuario ha autorizado el uso del micrófono
 
 **Flujo Principal:**
-1. Usuario accede a nueva transacción
-2. Usuario hace clic en botón de micrófono
-3. Sistema solicita permiso de micrófono (si no está concedido)
-4. Sistema inicia reconocimiento de voz
-5. Sistema indica que está escuchando
-6. Usuario habla comando (ej: "Gasto de 50 bolivianos en comida")
-7. Sistema recibe transcripción
-8. Sistema parsea comando para extraer:
-   - Tipo (ingreso/gasto)
-   - Monto
-   - Descripción/categoría
-9. Sistema pre-llena campos del formulario
-10. Sistema muestra campos al usuario
-11. Usuario revisa y ajusta si es necesario
-12. Usuario confirma y guarda
-13. Sistema crea transacción (ver CU-02)
+1. Usuario accede a función de crear transacción
+2. Usuario activa el modo de entrada por voz
+3. Software solicita autorización para usar el micrófono (si es necesario)
+4. Software activa el reconocimiento de voz
+5. Software indica que está listo para escuchar
+6. Usuario dicta la información de la transacción
+7. Software interpreta el comando de voz
+8. Software identifica los elementos de la transacción
+9. Software muestra la información interpretada
+10. Usuario verifica la información
+11. Usuario confirma o ajusta los datos
+12. Software registra la transacción
 
-**Flujo Alternativo (Ajuste Manual):**
-- 11a. Usuario modifica campos pre-llenados
-- 11b. Usuario continúa con guardado normal
+**Flujo Alternativo (Corrección Manual):**
+- El usuario puede modificar cualquier dato antes de confirmar
+- Software acepta las modificaciones y continúa con el registro
 
-**Flujo Alternativo (Error de Reconocimiento):**
-- 7a. Sistema no reconoce comando
-- 7b. Sistema muestra error
-- 7c. Usuario puede intentar nuevamente o ingresar manualmente
+**Flujo Alternativo (Error de Interpretación):**
+- Si el software no puede interpretar el comando
+- Software notifica al usuario
+- Usuario puede intentar nuevamente o ingresar manualmente
 
 **Postcondiciones:**
-- Transacción creada con datos de comando de voz
-- Formulario limpio para nueva transacción
+- Transacción registrada exitosamente en el software
+- Software listo para nueva entrada
 
 **Excepciones:**
-- E1: Permiso denegado - Mostrar mensaje y deshabilitar función
-- E2: API no soportada - Ocultar botón de voz
-- E3: Sin reconocimiento - Permitir input manual
-- E4: Formato inválido - Mostrar campos vacíos para completar
+- E1: Autorización denegada - Software notifica y ofrece entrada manual
+- E2: Función no disponible - Software oculta la opción de voz
+- E3: No se puede reconocer - Software permite entrada manual
+- E4: Información incompleta - Software solicita completar datos
 
 ---
 
@@ -169,77 +173,62 @@
 
 **Actores:** Usuario
 
-**Descripción:** Crear, editar, eliminar y monitorear presupuestos y metas de ahorro, así como agregar dinero a presupuestos activos.
+**Descripción:** Permite definir, modificar, eliminar y dar seguimiento a presupuestos y metas de ahorro, además de realizar aportes a los presupuestos.
 
 **Precondiciones:**
-- Usuario autenticado
-- Para editar/eliminar: Presupuesto debe existir y pertenecer al usuario
+- Usuario tiene acceso al software
+- Para modificar/eliminar: El presupuesto debe existir
 
 **Flujo Principal (Ver Presupuestos):**
-1. Usuario accede a página de presupuestos
-2. Sistema carga presupuestos del usuario
-3. Sistema calcula y muestra:
-   - Total de presupuestos
-   - Asignación mensual total
-   - Presupuestos activos
-4. Sistema muestra lista de presupuestos con progreso
+1. Usuario solicita ver sus presupuestos
+2. Software recupera los presupuestos del usuario
+3. Software calcula información resumida
+4. Software presenta los presupuestos con su progreso
 
-**Flujo Alternativo (Crear):**
-1. Usuario hace clic en "Nuevo Presupuesto"
-2. Sistema muestra formulario
-3. Usuario completa:
-   - Nombre
-   - Tipo (ahorro, compra, emergencia, vacaciones, otro)
-   - Monto objetivo
-   - Fecha objetivo (opcional)
-   - Descripción (opcional)
-4. Usuario envía formulario
-5. Sistema valida datos
-6. Sistema crea presupuesto con currentAmount = 0
-7. Sistema envía al backend
-8. Sistema agrega a lista
-9. Sistema muestra mensaje de éxito
+**Flujo Alternativo (Crear Presupuesto):**
+1. Usuario solicita crear un nuevo presupuesto
+2. Software solicita información del presupuesto
+3. Usuario proporciona nombre, tipo, monto objetivo y plazo
+4. Software valida la información
+5. Software registra el presupuesto
+6. Software actualiza la lista de presupuestos
+7. Software confirma la creación
 
-**Flujo Alternativo (Editar):**
-1. Usuario hace clic en editar presupuesto
-2. Sistema carga datos en formulario
-3. Usuario modifica campos
-4. Usuario guarda cambios
-5. Sistema valida y actualiza
-6. Sistema sincroniza con backend
-7. Sistema muestra mensaje de éxito
+**Flujo Alternativo (Modificar Presupuesto):**
+1. Usuario selecciona un presupuesto existente
+2. Software presenta la información actual
+3. Usuario modifica los datos deseados
+4. Software valida los cambios
+5. Software actualiza el presupuesto
+6. Software confirma la modificación
 
-**Flujo Alternativo (Eliminar):**
-1. Usuario hace clic en eliminar
-2. Sistema muestra confirmación
-3. Usuario confirma
-4. Sistema elimina de lista
-5. Sistema envía eliminación al backend
-6. Sistema recalcula totales
-7. Sistema muestra mensaje de éxito
+**Flujo Alternativo (Eliminar Presupuesto):**
+1. Usuario selecciona eliminar un presupuesto
+2. Software solicita confirmación
+3. Usuario confirma la eliminación
+4. Software elimina el presupuesto
+5. Software actualiza los cálculos
+6. Software confirma la eliminación
 
-**Flujo Alternativo (Agregar Dinero):**
-1. Usuario hace clic en "Agregar Dinero" en presupuesto activo
-2. Sistema muestra input de monto
-3. Usuario ingresa cantidad
-4. Usuario confirma
-5. Sistema actualiza currentAmount en UI
-6. Sistema envía al backend
-7. Sistema recalcula progreso
-8. Si currentAmount >= targetAmount:
-   - Sistema cambia status a COMPLETED
-9. Sistema muestra mensaje de éxito
+**Flujo Alternativo (Aportar al Presupuesto):**
+1. Usuario selecciona realizar un aporte
+2. Software solicita el monto del aporte
+3. Usuario proporciona la cantidad
+4. Software registra el aporte
+5. Software actualiza el progreso del presupuesto
+6. Software verifica si se alcanzó el objetivo
+7. Software confirma el aporte
 
 **Postcondiciones:**
-- Presupuestos creados/actualizados/eliminados
-- Progreso calculado correctamente
-- Totales y métricas actualizadas
+- Presupuestos quedan registrados y actualizados
+- El progreso se calcula y muestra correctamente
+- Las métricas se actualizan automáticamente
 
 **Excepciones:**
-- E1: Validación fallida - Mostrar errores
-- E2: Monto inválido - Mostrar error
-- E3: Error de red - Mostrar mensaje
-- E4: Sin presupuestos - Mostrar mensaje y botón crear
+- E1: Datos inválidos - Software notifica los errores
+- E2: Monto no válido - Software notifica el problema
+- E3: Error en el proceso - Software notifica al usuario
+- E4: Sin presupuestos - Software informa y ofrece crear uno
 
 ---
 
@@ -247,69 +236,55 @@
 
 **Actores:** Usuario
 
-**Descripción:** Administrar suscripciones y pagos automáticos recurrentes con diferentes frecuencias.
+**Descripción:** Permite administrar suscripciones y compromisos de pago periódicos con diferentes frecuencias.
 
 **Precondiciones:**
-- Usuario autenticado
-- Categorías de gasto disponibles
-- Para editar/eliminar: Pago debe existir y pertenecer al usuario
+- Usuario tiene acceso al software
+- Existen categorías de gasto disponibles
+- Para modificar/eliminar: El pago recurrente debe existir
 
 **Flujo Principal (Ver Pagos Recurrentes):**
-1. Usuario accede a página de pagos recurrentes
-2. Sistema carga pagos del usuario
-3. Sistema calcula y muestra:
-   - Total de pagos
-   - Gasto mensual equivalente
-   - Pagos activos
-4. Sistema muestra lista con próximas fechas
+1. Usuario solicita ver sus pagos recurrentes
+2. Software recupera los pagos del usuario
+3. Software calcula información resumida
+4. Software presenta los pagos con sus próximas fechas
 
-**Flujo Alternativo (Crear):**
-1. Usuario hace clic en "Nuevo Pago Recurrente"
-2. Sistema muestra formulario
-3. Usuario completa:
-   - Nombre
-   - Categoría
-   - Monto
-   - Frecuencia (diaria, semanal, mensual, anual)
-   - Próxima fecha de pago
-   - Descripción (opcional)
-4. Usuario envía formulario
-5. Sistema valida datos
-6. Sistema crea pago con status ACTIVE
-7. Sistema envía al backend
-8. Sistema agrega a lista
-9. Sistema recalcula gasto mensual
-10. Sistema muestra mensaje de éxito
+**Flujo Alternativo (Crear Pago Recurrente):**
+1. Usuario solicita registrar un nuevo pago recurrente
+2. Software solicita información del pago
+3. Usuario proporciona nombre, categoría, monto, frecuencia y próxima fecha
+4. Software valida la información
+5. Software registra el pago recurrente
+6. Software actualiza los cálculos
+7. Software confirma el registro
 
-**Flujo Alternativo (Editar):**
-1. Usuario hace clic en editar pago
-2. Sistema carga datos en formulario
-3. Usuario modifica campos
-4. Usuario guarda cambios
-5. Sistema valida y actualiza
-6. Sistema recalcula próxima fecha si cambió frecuencia
-7. Sistema sincroniza con backend
-8. Sistema muestra mensaje de éxito
+**Flujo Alternativo (Modificar Pago Recurrente):**
+1. Usuario selecciona un pago recurrente existente
+2. Software presenta la información actual
+3. Usuario modifica los datos deseados
+4. Software valida los cambios
+5. Software actualiza el pago recurrente
+6. Software recalcula fechas y montos
+7. Software confirma la modificación
 
-**Flujo Alternativo (Eliminar):**
-1. Usuario hace clic en eliminar
-2. Sistema muestra confirmación
-3. Usuario confirma
-4. Sistema elimina de lista
-5. Sistema envía eliminación al backend
-6. Sistema recalcula totales
-7. Sistema muestra mensaje de éxito
+**Flujo Alternativo (Eliminar Pago Recurrente):**
+1. Usuario selecciona eliminar un pago recurrente
+2. Software solicita confirmación
+3. Usuario confirma la eliminación
+4. Software elimina el pago recurrente
+5. Software actualiza los cálculos
+6. Software confirma la eliminación
 
 **Postcondiciones:**
-- Pagos recurrentes gestionados correctamente
-- Gasto mensual calculado
-- Próximas fechas actualizadas
+- Pagos recurrentes quedan registrados y actualizados
+- El gasto mensual se calcula correctamente
+- Las próximas fechas de pago se mantienen actualizadas
 
 **Excepciones:**
-- E1: Validación fallida - Mostrar errores
-- E2: Fecha inválida - Mostrar error
-- E3: Error al cargar categorías - Mostrar error
-- E4: Sin pagos - Mostrar mensaje y botón crear
+- E1: Datos inválidos - Software notifica los errores
+- E2: Fecha no válida - Software notifica el problema
+- E3: Error al obtener categorías - Software notifica al usuario
+- E4: Sin pagos recurrentes - Software informa y ofrece crear uno
 
 ---
 
@@ -317,49 +292,41 @@
 
 **Actores:** Usuario
 
-**Descripción:** Ver resumen financiero del día, gráficos semanales, balance disponible y recomendaciones de IA.
+**Descripción:** Permite ver un resumen consolidado de la situación financiera actual con indicadores, gráficos y recomendaciones.
 
 **Precondiciones:**
-- Usuario autenticado
+- Usuario tiene acceso al software
 
 **Flujo Principal:**
-1. Usuario accede al dashboard
-2. Sistema inicia carga de datos en paralelo:
-   - Transacciones
-   - Presupuestos
-   - Pagos recurrentes
-   - Recomendaciones IA
-3. Sistema calcula resumen del día:
-   - Ingresos de hoy
-   - Gastos de hoy
-   - Balance neto
-4. Sistema calcula balance disponible:
-   - Ingresos - Gastos - Asignaciones presupuesto - Pagos recurrentes
-5. Sistema genera datos de gráfico semanal (últimos 7 días)
-6. Sistema muestra tarjetas de resumen con iconos
-7. Sistema muestra tarjetas de presupuestos y pagos (si existen)
-8. Sistema renderiza gráfico de línea (ingresos vs gastos)
-9. Sistema muestra recomendaciones de IA
-10. Sistema muestra últimas 5 transacciones
+1. Usuario solicita ver el resumen financiero
+2. Software recupera información financiera del usuario
+3. Software calcula métricas del día actual
+4. Software calcula balance disponible
+5. Software genera datos para gráficos de tendencia
+6. Software presenta tarjetas con indicadores clave
+7. Software muestra gráficos de evolución semanal
+8. Software presenta recomendaciones inteligentes
+9. Software muestra resumen de transacciones recientes
 
-**Flujo Alternativo (Sin Datos):**
-- Si no hay transacciones: Mostrar mensaje y botón "Agregar Transacción"
-- Si no hay presupuestos: No mostrar sección
-- Si no hay recomendaciones: Mostrar placeholder
+**Flujo Alternativo (Sin Datos Disponibles):**
+- Si no hay información para mostrar
+- Software informa la situación
+- Software ofrece opciones para comenzar a registrar datos
 
-**Flujo Alternativo (Actualización):**
-- Usuario regresa al dashboard
-- Sistema recarga datos automáticamente
+**Flujo Alternativo (Actualización de Datos):**
+- Usuario solicita actualizar la información
+- Software recarga los datos más recientes
+- Software actualiza las visualizaciones
 
 **Postcondiciones:**
-- Dashboard actualizado con datos recientes
-- Métricas calculadas correctamente
-- Visualizaciones renderizadas
+- Usuario visualiza su situación financiera actualizada
+- Todas las métricas y gráficos se presentan correctamente
+- El usuario puede tomar decisiones informadas
 
 **Excepciones:**
-- E1: Error al cargar datos - Mostrar error específico
-- E2: Token expirado - Redirigir a login
-- E3: Sin conexión - Mostrar datos cacheados
+- E1: Error al recuperar datos - Software notifica el problema
+- E2: Sesión expirada - Software solicita autenticación nuevamente
+- E3: Sin conectividad - Software muestra última información disponible
 
 ---
 
@@ -367,120 +334,94 @@
 
 **Actores:** Usuario
 
-**Descripción:** Visualizar gráficos y análisis de patrones financieros por diferentes períodos con múltiples visualizaciones.
+**Descripción:** Permite analizar patrones financieros mediante gráficos y métricas para diferentes períodos de tiempo.
 
 **Precondiciones:**
-- Usuario autenticado
-- Al menos una transacción existente
+- Usuario tiene acceso al software
+- Existe al menos una transacción registrada
 
 **Flujo Principal:**
-1. Usuario accede a página de reportes
-2. Sistema carga todas las transacciones
-3. Sistema aplica filtro por defecto (mes actual)
-4. Sistema calcula métricas:
-   - Total de ingresos
-   - Total de gastos
-   - Balance neto
-5. Sistema agrupa gastos por categoría
-6. Sistema genera datos mensuales
-7. Sistema renderiza gráfico circular (distribución por categoría)
-8. Sistema renderiza gráfico de barras (ingresos vs gastos)
-9. Sistema muestra top 5 categorías con barras de progreso
+1. Usuario solicita ver reportes financieros
+2. Software recupera las transacciones del usuario
+3. Software aplica período de análisis predeterminado
+4. Software calcula métricas financieras
+5. Software agrupa datos por categoría
+6. Software prepara datos para visualización
+7. Software presenta gráficos de distribución
+8. Software muestra comparativas de períodos
+9. Software destaca categorías más relevantes
 
-**Flujo Alternativo (Cambiar Rango):**
-1. Usuario selecciona rango predefinido:
-   - Últimos 7 días
-   - Últimos 30 días
-   - Este mes
-   - Mes anterior
-   - Este año
-2. Sistema filtra transacciones por rango
-3. Sistema recalcula todas las métricas
-4. Sistema actualiza gráficos
-5. Sistema actualiza categorías principales
+**Flujo Alternativo (Cambiar Período):**
+1. Usuario selecciona un período predefinido
+2. Software filtra las transacciones según el período
+3. Software recalcula todas las métricas
+4. Software actualiza las visualizaciones
+5. Software presenta la información actualizada
 
-**Flujo Alternativo (Rango Personalizado):**
-1. Usuario selecciona "Personalizado"
-2. Sistema muestra inputs de fecha
-3. Usuario selecciona fecha desde y hasta
-4. Sistema filtra transacciones
-5. Sistema recalcula métricas
-6. Sistema actualiza visualizaciones
+**Flujo Alternativo (Definir Período Personalizado):**
+1. Usuario solicita un período personalizado
+2. Software solicita fechas de inicio y fin
+3. Usuario define el rango de fechas
+4. Software filtra y analiza el período especificado
+5. Software presenta los resultados
 
-**Flujo Alternativo (Actualizar Datos):**
-1. Usuario hace clic en "Actualizar Datos"
-2. Sistema muestra animación de carga
-3. Sistema recarga transacciones del backend
-4. Sistema recalcula todo
-5. Sistema actualiza visualizaciones
-6. Sistema muestra mensaje de éxito
+**Flujo Alternativo (Actualizar Información):**
+1. Usuario solicita actualizar los datos
+2. Software recupera información más reciente
+3. Software recalcula métricas
+4. Software actualiza las visualizaciones
+5. Software confirma la actualización
 
 **Postcondiciones:**
-- Reportes generados con datos correctos
-- Gráficos renderizados apropiadamente
-- Métricas calculadas para el período seleccionado
+- Reportes generados con información actualizada
+- Gráficos presentados correctamente
+- Métricas calculadas para el período especificado
 
 **Excepciones:**
-- E1: Sin transacciones en rango - Mostrar mensaje
-- E2: Error al cargar - Mostrar error
-- E3: Rango inválido - Mostrar error de validación
+- E1: Sin transacciones en el período - Software informa la situación
+- E2: Error en el proceso - Software notifica el problema
+- E3: Período no válido - Software notifica y solicita corrección
 
 ---
 
 ### CU-08: Obtener Recomendaciones IA
 
-**Actores:** Usuario, Sistema de IA
+**Actores:** Usuario, Software de Inteligencia Artificial
 
-**Descripción:** Recibir recomendaciones inteligentes basadas en análisis de patrones de gasto del usuario.
+**Descripción:** Proporciona sugerencias y consejos personalizados basados en el análisis de hábitos financieros del usuario.
 
 **Precondiciones:**
-- Usuario autenticado
-- Usuario tiene historial de transacciones
+- Usuario tiene acceso al software
+- Existe historial de transacciones para analizar
 
 **Flujo Principal:**
-1. Usuario visualiza dashboard (ver CU-06)
-2. Sistema verifica cache de recomendaciones
-3. Si cache es válido (< 15 minutos):
-   - Sistema muestra recomendaciones cacheadas
-4. Si cache expiró o está vacío:
-   - Sistema solicita recomendaciones al backend
-   - Backend analiza patrones del usuario:
-     - Categorías con mayor gasto
-     - Tendencias de gasto
-     - Comparación con presupuestos
-     - Oportunidades de ahorro
-   - Backend genera recomendaciones con:
-     - Título
-     - Descripción
-     - Tipo (warning, success, info)
-     - Prioridad
-   - Sistema recibe recomendaciones
-   - Sistema almacena en cache
-5. Sistema renderiza recomendaciones con:
-   - Icono según tipo
-   - Color según tipo
-   - Título en negrita
-   - Descripción
-6. Sistema ordena por prioridad
+1. Usuario accede al resumen financiero
+2. Software verifica disponibilidad de recomendaciones
+3. Software analiza los patrones financieros del usuario
+4. Software identifica áreas de oportunidad
+5. Software genera recomendaciones personalizadas
+6. Software presenta las recomendaciones al usuario
+7. Software prioriza las sugerencias más relevantes
 
-**Flujo Alternativo (Sin Historial):**
-- Si usuario es nuevo sin transacciones
-- Sistema muestra recomendaciones genéricas
+**Flujo Alternativo (Usuario Nuevo):**
+- Si el usuario no tiene suficiente historial
+- Software proporciona recomendaciones generales
+- Software explica cómo mejorar las recomendaciones
 
-**Flujo Alternativo (Error):**
-- Si backend falla
-- Sistema muestra última cache disponible
-- O muestra mensaje de error suave
+**Flujo Alternativo (Servicio No Disponible):**
+- Si no se pueden generar recomendaciones
+- Software muestra recomendaciones anteriores si existen
+- Software notifica la situación al usuario
 
 **Postcondiciones:**
-- Recomendaciones mostradas al usuario
-- Cache actualizado con tiempo de expiración
-- Usuario informado sobre patrones de gasto
+- Usuario recibe recomendaciones personalizadas
+- Las sugerencias se actualizan periódicamente
+- Usuario puede tomar acciones basadas en las recomendaciones
 
 **Excepciones:**
-- E1: Error del servicio IA - Mostrar última cache o mensaje
-- E2: Sin datos suficientes - Mostrar mensaje informativo
-- E3: Cache corrupto - Limpiar y solicitar nuevas
+- E1: Servicio de análisis no disponible - Software muestra última información disponible
+- E2: Datos insuficientes - Software notifica y sugiere registrar más transacciones
+- E3: Error en el análisis - Software notifica el problema al usuario
 
 ---
 
@@ -488,55 +429,38 @@
 
 **Actores:** Usuario
 
-**Descripción:** Exportar transacciones filtradas a formato CSV para análisis externo.
+**Descripción:** Permite exportar transacciones a un archivo externo para análisis o respaldo.
 
 **Precondiciones:**
-- Usuario autenticado
-- Al menos una transacción existe
+- Usuario tiene acceso al software
+- Existe al menos una transacción registrada
 
 **Flujo Principal:**
-1. Usuario está en página de transacciones
-2. Usuario aplica filtros opcionales:
-   - Búsqueda por descripción
-   - Tipo (ingreso/gasto)
-   - Categoría
-   - Rango de fechas
-3. Sistema filtra transacciones
-4. Usuario hace clic en "Exportar"
-5. Sistema crea array de headers CSV:
-   - Fecha, Descripción, Categoría, Tipo, Monto
-6. Sistema convierte transacciones filtradas a filas CSV:
-   - Escapa comillas en descripciones
-   - Formatea fechas
-   - Traduce tipos
-7. Sistema crea contenido CSV completo
-8. Sistema crea Blob con tipo "text/csv"
-9. Sistema genera URL temporal del Blob
-10. Sistema crea elemento <a> con:
-    - href = URL del Blob
-    - download = "transacciones-YYYY-MM-DD.csv"
-11. Sistema dispara clic automático
-12. Navegador descarga archivo
-13. Sistema limpia URL temporal
+1. Usuario visualiza sus transacciones
+2. Usuario aplica filtros si lo desea
+3. Usuario solicita exportar los datos
+4. Software prepara la información seleccionada
+5. Software genera un archivo con las transacciones
+6. Software descarga el archivo al dispositivo del usuario
 
-**Flujo Alternativo (Sin Filtros):**
-- Usuario exporta sin aplicar filtros
-- Sistema exporta todas las transacciones
+**Flujo Alternativo (Exportar Todo):**
+- Usuario no aplica ningún filtro
+- Software exporta todas las transacciones disponibles
 
-**Flujo Alternativo (Lista Vacía):**
+**Flujo Alternativo (Sin Datos):**
 - Si no hay transacciones para exportar
-- Sistema muestra mensaje de advertencia
-- Sistema no genera archivo
+- Software notifica al usuario
+- Software no genera el archivo
 
 **Postcondiciones:**
-- Archivo CSV descargado al dispositivo del usuario
-- Archivo contiene transacciones filtradas
-- URL temporal limpiada
+- Archivo descargado en el dispositivo del usuario
+- El archivo contiene las transacciones seleccionadas
+- Los datos mantienen su integridad
 
 **Excepciones:**
-- E1: Sin transacciones - Mostrar mensaje, no exportar
-- E2: Error al generar Blob - Mostrar error
-- E3: Navegador no soporta download - Mostrar error
+- E1: Sin transacciones disponibles - Software notifica al usuario
+- E2: Error al generar archivo - Software notifica el problema
+- E3: Función no soportada - Software notifica la limitación
 
 ---
 
@@ -544,53 +468,41 @@
 
 **Actores:** Usuario
 
-**Descripción:** Modificar información personal del usuario (nombre y email).
+**Descripción:** Permite modificar la información personal del usuario en el software.
 
 **Precondiciones:**
-- Usuario autenticado
+- Usuario tiene acceso al software
 
 **Flujo Principal:**
-1. Usuario accede a página de perfil
-2. Sistema muestra datos actuales del usuario:
-   - Email
-   - Nombre
-3. Usuario modifica campos deseados
-4. Usuario hace clic en "Guardar Cambios"
-5. Sistema valida datos:
-   - Email en formato válido
-   - Nombre no vacío
-6. Sistema envía actualización al backend
-7. Backend valida que email no esté en uso (si cambió)
-8. Backend actualiza información
-9. Sistema actualiza datos en store local
-10. Sistema actualiza UI con nuevos datos
-11. Sistema muestra mensaje de éxito
+1. Usuario solicita ver su perfil
+2. Software presenta la información actual del usuario
+3. Usuario modifica los datos que desea cambiar
+4. Usuario solicita guardar los cambios
+5. Software valida la información modificada
+6. Software actualiza los datos del usuario
+7. Software confirma la actualización
 
-**Flujo Alternativo (Solo Nombre):**
-- Usuario solo cambia nombre
-- Sistema actualiza sin validar email único
-
-**Flujo Alternativo (Solo Email):**
-- Usuario solo cambia email
-- Sistema valida que email no exista
-- Sistema actualiza
+**Flujo Alternativo (Cambio Parcial):**
+- Usuario modifica solo algunos campos
+- Software valida solo los campos modificados
+- Software actualiza únicamente la información cambiada
 
 **Postcondiciones:**
-- Información de usuario actualizada en backend
-- Store local sincronizado
-- UI muestra datos actualizados
+- Información del usuario actualizada en el software
+- Los cambios se reflejan en todas las áreas del software
+- Usuario visualiza su información actualizada
 
 **Excepciones:**
-- E1: Email ya existe - Mostrar error, mantener datos
-- E2: Validación fallida - Mostrar errores en campos
-- E3: Error de red - Mostrar error, mantener cambios en UI
-- E4: Token expirado - Redirigir a login
+- E1: Datos en conflicto - Software notifica el problema específico
+- E2: Datos no válidos - Software indica los errores encontrados
+- E3: Error en el proceso - Software notifica y mantiene datos originales
+- E4: Sesión expirada - Software solicita autenticación nuevamente
 
 ---
 
 ## 2. DIAGRAMAS DE CASO DE USO
 
-### Diagrama General del Sistema
+### Diagrama General del Software
 
 ```
 @startuml
@@ -598,10 +510,10 @@ left to right direction
 skinparam packageStyle rectangle
 
 actor Usuario as U
-actor "Sistema IA" as IA
-actor "Web Speech API" as VR
+actor "Software de Inteligencia Artificial" as IA
+actor "Software de Reconocimiento de Voz" as VR
 
-rectangle "MoneyTalk Finance App" {
+rectangle "Software MoneyTalk Finance" {
 
   package "Autenticación" {
     (CU-01: Gestionar Autenticación) as AUTH
@@ -617,9 +529,9 @@ rectangle "MoneyTalk Finance App" {
   package "Gestión Financiera" {
     (CU-02: Gestionar Transacciones) as TRANS
     (Crear Transacción) as CREATE_T
-    (Editar Transacción) as EDIT_T
+    (Modificar Transacción) as EDIT_T
     (Eliminar Transacción) as DELETE_T
-    (Buscar/Filtrar) as FILTER_T
+    (Filtrar Transacciones) as FILTER_T
     (CU-03: Crear con Voz) as VOICE
     (CU-09: Exportar Datos) as EXPORT
 
@@ -634,8 +546,8 @@ rectangle "MoneyTalk Finance App" {
   package "Presupuestos" {
     (CU-04: Gestionar Presupuestos) as BUDGET
     (Crear Presupuesto) as CREATE_B
-    (Agregar Dinero) as ADD_MONEY
-    (Editar Presupuesto) as EDIT_B
+    (Aportar al Presupuesto) as ADD_MONEY
+    (Modificar Presupuesto) as EDIT_B
     (Eliminar Presupuesto) as DELETE_B
 
     BUDGET ..> CREATE_B : <<include>>
@@ -647,7 +559,7 @@ rectangle "MoneyTalk Finance App" {
   package "Pagos Recurrentes" {
     (CU-05: Gestionar Pagos Recurrentes) as RECURRING
     (Crear Pago Recurrente) as CREATE_R
-    (Editar Pago Recurrente) as EDIT_R
+    (Modificar Pago Recurrente) as EDIT_R
     (Eliminar Pago Recurrente) as DELETE_R
 
     RECURRING ..> CREATE_R : <<include>>
@@ -657,14 +569,14 @@ rectangle "MoneyTalk Finance App" {
 
   package "Visualización y Análisis" {
     (CU-06: Visualizar Dashboard) as DASH
-    (Ver Resumen Diario) as DAILY
-    (Ver Gráficos Semanales) as WEEKLY
+    (Ver Resumen Financiero) as SUMMARY
+    (Ver Gráficos) as CHARTS
     (CU-07: Generar Reportes) as REPORTS
-    (Filtrar por Período) as FILTER_R
+    (Seleccionar Período) as FILTER_R
     (CU-08: Obtener Recomendaciones IA) as AI_REC
 
-    DASH ..> DAILY : <<include>>
-    DASH ..> WEEKLY : <<include>>
+    DASH ..> SUMMARY : <<include>>
+    DASH ..> CHARTS : <<include>>
     DASH ..> AI_REC : <<include>>
     REPORTS ..> FILTER_R : <<extend>>
   }
@@ -702,12 +614,12 @@ rectangle "CU-01: Gestión de Autenticación" {
   (Registrarse) as REG
   (Iniciar Sesión) as LOGIN
   (Cerrar Sesión) as LOGOUT
-  (Validar Credenciales) as VALID
-  (Generar Token JWT) as TOKEN
+  (Validar Identidad) as VALID
+  (Otorgar Acceso) as ACCESS
 
   LOGIN ..> VALID : <<include>>
-  LOGIN ..> TOKEN : <<include>>
-  REG ..> TOKEN : <<include>>
+  LOGIN ..> ACCESS : <<include>>
+  REG ..> ACCESS : <<include>>
 }
 
 U --> REG
@@ -726,22 +638,18 @@ left to right direction
 actor Usuario as U
 
 rectangle "CU-02: Gestionar Transacciones" {
-  (Ver Lista de Transacciones) as VIEW
+  (Ver Transacciones) as VIEW
   (Crear Transacción) as CREATE
-  (Editar Transacción) as EDIT
+  (Modificar Transacción) as EDIT
   (Eliminar Transacción) as DELETE
   (Buscar Transacciones) as SEARCH
-  (Filtrar por Tipo) as FILTER_TYPE
-  (Filtrar por Categoría) as FILTER_CAT
-  (Filtrar por Fecha) as FILTER_DATE
-  (Paginar Resultados) as PAGING
-  (Validar Formulario) as VALIDATE
+  (Filtrar Transacciones) as FILTER
+  (Navegar entre Páginas) as PAGING
+  (Validar Información) as VALIDATE
 
   VIEW ..> PAGING : <<extend>>
   VIEW ..> SEARCH : <<extend>>
-  VIEW ..> FILTER_TYPE : <<extend>>
-  VIEW ..> FILTER_CAT : <<extend>>
-  VIEW ..> FILTER_DATE : <<extend>>
+  VIEW ..> FILTER : <<extend>>
 
   CREATE ..> VALIDATE : <<include>>
   EDIT ..> VALIDATE : <<include>>
@@ -762,25 +670,25 @@ U --> DELETE
 left to right direction
 
 actor Usuario as U
-actor "Web Speech API" as WSA
+actor "Software de Reconocimiento de Voz" as VR
 
 rectangle "CU-03: Crear Transacción con Voz" {
-  (Activar Micrófono) as MIC
-  (Reconocer Voz) as RECOG
-  (Parsear Comando) as PARSE
-  (Pre-llenar Formulario) as PREFILL
-  (Crear Transacción) as CREATE
-  (Solicitar Permisos) as PERM
+  (Activar Entrada por Voz) as ACTIVATE
+  (Interpretar Comando) as INTERPRET
+  (Identificar Elementos) as IDENTIFY
+  (Presentar Información) as PRESENT
+  (Registrar Transacción) as REGISTER
+  (Solicitar Autorización) as AUTH
 
-  MIC ..> PERM : <<include>>
-  MIC ..> RECOG : <<include>>
-  RECOG ..> PARSE : <<include>>
-  PARSE ..> PREFILL : <<include>>
-  PREFILL ..> CREATE : <<include>>
+  ACTIVATE ..> AUTH : <<include>>
+  ACTIVATE ..> INTERPRET : <<include>>
+  INTERPRET ..> IDENTIFY : <<include>>
+  IDENTIFY ..> PRESENT : <<include>>
+  PRESENT ..> REGISTER : <<include>>
 }
 
-U --> MIC
-WSA ..> RECOG : <<provee servicio>>
+U --> ACTIVATE
+VR ..> INTERPRET : <<provee servicio>>
 
 @enduml
 ```
@@ -796,15 +704,13 @@ actor Usuario as U
 rectangle "CU-04: Gestionar Presupuestos" {
   (Ver Presupuestos) as VIEW
   (Crear Presupuesto) as CREATE
-  (Editar Presupuesto) as EDIT
+  (Modificar Presupuesto) as EDIT
   (Eliminar Presupuesto) as DELETE
-  (Agregar Dinero) as ADD
+  (Aportar al Presupuesto) as ADD
   (Calcular Progreso) as CALC_PROG
-  (Calcular Asignación Mensual) as CALC_MONTHLY
-  (Validar Formulario) as VALIDATE
+  (Validar Información) as VALIDATE
 
   VIEW ..> CALC_PROG : <<include>>
-  VIEW ..> CALC_MONTHLY : <<include>>
   CREATE ..> VALIDATE : <<include>>
   EDIT ..> VALIDATE : <<include>>
   ADD ..> CALC_PROG : <<include>>
@@ -830,14 +736,12 @@ actor Usuario as U
 rectangle "CU-05: Gestionar Pagos Recurrentes" {
   (Ver Pagos Recurrentes) as VIEW
   (Crear Pago Recurrente) as CREATE
-  (Editar Pago Recurrente) as EDIT
+  (Modificar Pago Recurrente) as EDIT
   (Eliminar Pago Recurrente) as DELETE
-  (Calcular Gasto Mensual) as CALC_MONTHLY
-  (Calcular Próxima Fecha) as CALC_NEXT
-  (Validar Formulario) as VALIDATE
+  (Calcular Información) as CALC
+  (Validar Información) as VALIDATE
 
-  VIEW ..> CALC_MONTHLY : <<include>>
-  VIEW ..> CALC_NEXT : <<include>>
+  VIEW ..> CALC : <<include>>
   CREATE ..> VALIDATE : <<include>>
   EDIT ..> VALIDATE : <<include>>
 }
@@ -857,29 +761,23 @@ U --> DELETE
 left to right direction
 
 actor Usuario as U
-actor "Sistema IA" as IA
+actor "Software de Inteligencia Artificial" as IA
 
 rectangle "CU-06: Visualizar Dashboard" {
-  (Ver Dashboard) as VIEW
-  (Cargar Transacciones) as LOAD_T
-  (Cargar Presupuestos) as LOAD_B
-  (Cargar Pagos Recurrentes) as LOAD_R
-  (Obtener Recomendaciones) as LOAD_AI
-  (Calcular Resumen Diario) as CALC_DAILY
-  (Generar Gráfico Semanal) as CHART_WEEK
-  (Calcular Balance Disponible) as CALC_BAL
+  (Ver Resumen Financiero) as VIEW
+  (Recuperar Información) as LOAD
+  (Calcular Métricas) as CALC
+  (Generar Gráficos) as CHARTS
+  (Obtener Recomendaciones) as REC
 
-  VIEW ..> LOAD_T : <<include>>
-  VIEW ..> LOAD_B : <<include>>
-  VIEW ..> LOAD_R : <<include>>
-  VIEW ..> LOAD_AI : <<include>>
-  VIEW ..> CALC_DAILY : <<include>>
-  VIEW ..> CHART_WEEK : <<include>>
-  VIEW ..> CALC_BAL : <<include>>
+  VIEW ..> LOAD : <<include>>
+  VIEW ..> CALC : <<include>>
+  VIEW ..> CHARTS : <<include>>
+  VIEW ..> REC : <<include>>
 }
 
 U --> VIEW
-IA ..> LOAD_AI : <<provee análisis>>
+IA ..> REC : <<provee análisis>>
 
 @enduml
 ```
@@ -894,23 +792,19 @@ actor Usuario as U
 
 rectangle "CU-07: Generar Reportes" {
   (Ver Reportes) as VIEW
-  (Filtrar por Período) as FILTER
-  (Seleccionar Rango Personalizado) as CUSTOM
-  (Calcular Totales) as CALC_TOT
-  (Agrupar por Categoría) as GROUP_CAT
-  (Generar Gráfico Circular) as CHART_PIE
-  (Generar Gráfico de Barras) as CHART_BAR
-  (Mostrar Top Categorías) as TOP_CAT
-  (Actualizar Datos) as REFRESH
+  (Seleccionar Período) as FILTER
+  (Definir Período Personalizado) as CUSTOM
+  (Calcular Métricas) as CALC
+  (Agrupar Información) as GROUP
+  (Generar Visualizaciones) as CHARTS
+  (Actualizar Información) as REFRESH
 
   VIEW ..> FILTER : <<extend>>
   VIEW ..> CUSTOM : <<extend>>
   VIEW ..> REFRESH : <<extend>>
-  VIEW ..> CALC_TOT : <<include>>
-  VIEW ..> GROUP_CAT : <<include>>
-  VIEW ..> CHART_PIE : <<include>>
-  VIEW ..> CHART_BAR : <<include>>
-  VIEW ..> TOP_CAT : <<include>>
+  VIEW ..> CALC : <<include>>
+  VIEW ..> GROUP : <<include>>
+  VIEW ..> CHARTS : <<include>>
 }
 
 U --> VIEW
@@ -925,20 +819,16 @@ U --> VIEW
 left to right direction
 
 actor Usuario as U
-actor "Sistema IA" as IA
+actor "Software de Inteligencia Artificial" as IA
 
 rectangle "CU-08: Obtener Recomendaciones IA" {
   (Solicitar Recomendaciones) as REQUEST
-  (Verificar Cache) as CHECK_CACHE
-  (Analizar Patrones) as ANALYZE
-  (Generar Recomendaciones) as GENERATE
-  (Mostrar Recomendaciones) as DISPLAY
-  (Actualizar Cache) as UPDATE_CACHE
+  (Analizar Patrones Financieros) as ANALYZE
+  (Generar Sugerencias) as GENERATE
+  (Presentar Recomendaciones) as DISPLAY
 
-  REQUEST ..> CHECK_CACHE : <<include>>
-  CHECK_CACHE ..> ANALYZE : <<extend>>
+  REQUEST ..> ANALYZE : <<include>>
   ANALYZE ..> GENERATE : <<include>>
-  GENERATE ..> UPDATE_CACHE : <<include>>
   REQUEST ..> DISPLAY : <<include>>
 }
 
@@ -958,9 +848,9 @@ left to right direction
 actor Usuario as U
 
 rectangle "CU-09: Exportar Datos" {
-  (Exportar a CSV) as EXPORT
+  (Exportar Transacciones) as EXPORT
   (Aplicar Filtros) as FILTER
-  (Generar Archivo CSV) as GENERATE
+  (Generar Archivo) as GENERATE
   (Descargar Archivo) as DOWNLOAD
 
   EXPORT ..> FILTER : <<extend>>
@@ -983,14 +873,12 @@ actor Usuario as U
 
 rectangle "CU-10: Actualizar Perfil" {
   (Ver Perfil) as VIEW
-  (Editar Información) as EDIT
-  (Validar Email Único) as VALIDATE_EMAIL
-  (Validar Formulario) as VALIDATE_FORM
+  (Modificar Información) as EDIT
+  (Validar Información) as VALIDATE
   (Guardar Cambios) as SAVE
 
   VIEW ..> EDIT : <<extend>>
-  EDIT ..> VALIDATE_FORM : <<include>>
-  EDIT ..> VALIDATE_EMAIL : <<extend>>
+  EDIT ..> VALIDATE : <<include>>
   EDIT ..> SAVE : <<include>>
 }
 
@@ -2549,7 +2437,7 @@ RPP --> Usuario : Confirmation
 ```
 @startuml
 actor Usuario
-actor "Sistema IA" as IA
+actor "Software IA" as IA
 
 boundary "Dashboard Page" as DP
 boundary "Summary Cards" as SC
@@ -2713,7 +2601,7 @@ RP --> Usuario : Datos actualizados
 ```
 @startuml
 actor Usuario
-actor "Sistema IA" as AI
+actor "Software IA" as AI
 
 boundary "Dashboard Page" as DP
 boundary "Recommendations Panel" as RC
@@ -3209,7 +3097,7 @@ if (¿Navegador soporta Web Speech API?) then (sí)
     :Iniciar reconocimiento de voz;
   endif
 
-  :Sistema escucha y muestra indicador;
+  :Software escucha y muestra indicador;
 
   :Usuario habla comando;
 
@@ -3479,50 +3367,199 @@ Browser --> WSA : uses directly
 
 ## 8. RESUMEN Y CONCLUSIÓN
 
-Este documento proporciona una visión completa y detallada de los casos de uso de **MoneyTalk Finance App**, incluyendo:
+Este documento proporciona un análisis completo y conceptual de los casos de uso de **MoneyTalk Finance App**, presentado en **modo análisis** para enfocarse en los requisitos del software desde una perspectiva de negocio.
 
-### Casos de Uso:
-- ✅ **10 Casos de Uso** completamente detallados con flujos principales, alternativos, precondiciones, postcondiciones y excepciones
+### Casos de Uso (Modo Análisis):
+- ✅ **10 Casos de Uso** completamente detallados con lenguaje orientado al usuario
+- ✅ Flujos principales y alternativos expresados conceptualmente
+- ✅ Precondiciones, postcondiciones y excepciones generales
+- ✅ Sin detalles técnicos de implementación (tokens JWT, APIs específicas, etc.)
+- ✅ Enfoque en **QUÉ** hace el software, no en **CÓMO** lo hace
 
-### Diagramas de Caso de Uso:
-- ✅ **1 Diagrama General** del sistema completo
-- ✅ **10 Diagramas Individuales** uno para cada caso de uso con subcasos incluidos
+### Diagramas de Caso de Uso (Modo Análisis):
+- ✅ **1 Diagrama General** del software completo con terminología conceptual
+- ✅ **10 Diagramas Individuales** uno para cada caso de uso
+- ✅ Actores externos representados como softwares conceptuales:
+  - "Software de Inteligencia Artificial" (en lugar de "Software IA" o servicios específicos)
+  - "Software de Reconocimiento de Voz" (en lugar de "Web Speech API")
+- ✅ Casos de uso con nombres orientados al negocio:
+  - "Modificar" en lugar de "Editar"
+  - "Aportar al Presupuesto" en lugar de "Agregar Dinero"
+  - "Recuperar Información" en lugar de "Cargar datos del backend"
 
-### Diagramas de Secuencia:
-- ✅ **10 Diagramas de Secuencia** completos (incluyendo CU-01 con 3 variantes: login, signup, logout)
-- Todos los flujos principales y alternativos documentados
-- Interacciones detalladas entre componentes
-- **Base de datos NO aparece como actor** - solo Backend API
-
-### Diagramas de Robustez:
-- ✅ **10 Diagramas de Robustez** uno para cada caso de uso
-- Boundaries, Controls y Entities claramente identificados
-- **Base de datos NO aparece como actor**
-
-### Diagramas Complementarios:
+### Diagramas Técnicos (Referencia de Implementación):
+Los siguientes diagramas se mantienen para fases posteriores de diseño e implementación:
+- ✅ **10 Diagramas de Secuencia** con interacciones detalladas
+- ✅ **10 Diagramas de Robustez** con Boundaries, Controls y Entities
 - ✅ Diagrama de Dominio completo
-- ✅ Diagrama Entidad-Relación
+- ✅ Diagrama Entidad-Relación (modelo de base de datos)
 - ✅ Diagramas de Estados (Budget y RecurringPayment)
 - ✅ Diagramas de Actividad (Voz y Sincronización Offline)
-- ✅ Diagrama de Componentes
+- ✅ Diagrama de Componentes (arquitectura frontend)
 - ✅ Diagrama de Despliegue
 
-### Características del Sistema:
-El sistema **MoneyTalk Finance App** es una aplicación financiera moderna que incluye:
-- Autenticación con JWT
-- Gestión completa de transacciones con modo offline
-- Reconocimiento de voz para entrada de datos
-- Presupuestos y metas de ahorro
-- Pagos recurrentes
-- Dashboard con múltiples métricas
-- Reportes personalizables con gráficos
-- Recomendaciones inteligentes con IA
-- Exportación de datos a CSV
-- Gestión de perfil de usuario
-- PWA con Service Worker
-- Sincronización offline/online
+### Funcionalidades del Software:
+El software **MoneyTalk Finance App** proporciona:
 
-### Correcciones Realizadas:
-✅ La base de datos ya NO aparece como actor en ningún diagrama
-✅ TODOS los 10 casos de uso tienen sus 3 diagramas completos (Caso de Uso, Secuencia y Robustez)
-✅ Cada caso de uso tiene descripción detallada con flujos, precondiciones, postcondiciones y excepciones
+**Gestión de Acceso:**
+- Registro e inicio de sesión de usuarios
+- Control de sesiones
+
+**Gestión Financiera:**
+- Registro de transacciones (ingresos y gastos)
+- Entrada de transacciones por voz
+- Filtrado y búsqueda de transacciones
+- Exportación de datos
+
+**Planificación Financiera:**
+- Definición y seguimiento de presupuestos
+- Aportes a presupuestos
+- Gestión de pagos recurrentes
+
+**Análisis y Visualización:**
+- Dashboard con resumen financiero
+- Reportes con gráficos y métricas
+- Recomendaciones personalizadas por IA
+- Análisis de patrones de gasto
+
+**Gestión de Usuario:**
+- Actualización de información personal
+
+### Cambios Realizados en esta Versión:
+
+✅ **Transición a Modo Análisis:**
+- Todos los casos de uso reescritos en lenguaje conceptual
+- Eliminación de referencias técnicas específicas
+- Enfoque en funcionalidad del negocio
+
+✅ **Actualización de Diagramas:**
+- Diagramas de caso de uso simplificados y conceptuales
+- Actores externos representados de manera abstracta
+- Terminología orientada al usuario final
+
+✅ **Documentación Clara:**
+- Nota inicial explicando el nivel de abstracción
+- Distinción clara entre análisis (Secciones 1-2) y diseño/implementación (Secciones 3-7)
+
+✅ **Consistencia Terminológica:**
+- "Modificar" en lugar de "Editar"
+- "Registrar" en lugar de "Crear"
+- "Proporciona" en lugar de "Ingresa"
+- "Software notifica" en lugar de "Mostrar mensaje"
+- "Usuario solicita" en lugar de "Usuario hace clic"
+
+Este documento ahora sirve como base para el análisis de requisitos del software, independiente de las decisiones de implementación técnica.
+
+---
+
+## 9. DIAGRAMA DE ACTIVIDAD GENERAL DEL SOFTWARE
+
+### Flujo General de Uso del Software MoneyTalk Finance
+
+```
+@startuml
+start
+
+:Usuario inicia el software;
+
+if (¿Usuario autenticado?) then (no)
+  :Proceso de Autenticación;
+  note right
+    - Iniciar sesión
+    - Registrarse
+  end note
+  
+  if (¿Autenticación exitosa?) then (sí)
+    :Software otorga acceso;
+  else (no)
+    :Software notifica error;
+    stop
+  endif
+endif
+
+:Software muestra Dashboard principal;
+
+repeat
+  :Usuario selecciona función;
+  
+  switch (Función seleccionada)
+    case (Gestionar Transacciones)
+      :Realizar operación con transacciones;
+      note right
+        - Crear (manual o por voz)
+        - Modificar
+        - Eliminar
+        - Filtrar/Buscar
+        - Exportar
+      end note
+      
+    case (Gestionar Presupuestos)
+      :Realizar operación con presupuestos;
+      note right
+        - Crear
+        - Modificar
+        - Aportar dinero
+        - Eliminar
+      end note
+      
+    case (Gestionar Pagos Recurrentes)
+      :Realizar operación con pagos recurrentes;
+      note right
+        - Crear
+        - Modificar
+        - Eliminar
+      end note
+      
+    case (Ver Dashboard)
+      :Mostrar resumen financiero consolidado;
+      note right
+        - Métricas del día
+        - Gráficos de tendencia
+        - Recomendaciones IA
+        - Transacciones recientes
+      end note
+      
+    case (Generar Reportes)
+      :Generar análisis financiero;
+      note right
+        - Seleccionar período
+        - Calcular métricas
+        - Visualizar gráficos
+      end note
+      
+    case (Actualizar Perfil)
+      :Actualizar información personal;
+      
+    case (Cerrar Sesión)
+      :Software cierra sesión;
+      stop
+  endswitch
+  
+  :Retornar al Dashboard;
+
+repeat while (¿Continuar usando software?) is (sí)
+
+stop
+
+@enduml
+```
+
+### Descripción del Flujo General
+
+Este diagrama de actividad simplificado representa el flujo general de uso del software MoneyTalk Finance App, mostrando:
+
+1. **Autenticación Inicial**: Proceso de inicio de sesión o registro para acceder al software.
+
+2. **Dashboard Central**: Punto de partida desde donde el usuario accede a todas las funcionalidades.
+
+3. **Módulos Funcionales Principales**:
+   - **Transacciones**: Operaciones CRUD completas con soporte de entrada por voz y exportación
+   - **Presupuestos**: Gestión de metas de ahorro con seguimiento de progreso
+   - **Pagos Recurrentes**: Administración de compromisos periódicos
+   - **Dashboard**: Visualización consolidada con métricas y recomendaciones IA
+   - **Reportes**: Análisis financiero con diferentes períodos
+   - **Perfil**: Actualización de datos personales
+
+4. **Ciclo de Uso**: El usuario puede realizar múltiples operaciones retornando siempre al Dashboard, hasta decidir cerrar sesión.
+
+El diagrama mantiene el **modo análisis**, presentando el flujo conceptual sin detalles de implementación técnica.

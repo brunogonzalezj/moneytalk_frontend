@@ -1,6 +1,7 @@
 import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
+import { useUIStore } from './stores/uiStore';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Spinner from './components/ui/Spinner';
@@ -17,13 +18,16 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 const Offline = lazy(() => import('./pages/Offline'));
 const Budgets = lazy(() => import('./pages/Budgets'));
 const RecurringPayments = lazy(() => import('./pages/RecurringPayments'));
+const Manual = lazy(() => import('./pages/Manual'));
 
 const App = () => {
   const { checkAuth, isLoading } = useAuthStore();
+  const { initializeTheme } = useUIStore();
 
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+    initializeTheme();
+  }, [checkAuth, initializeTheme]);
 
   if (isLoading) {
     return (
@@ -55,6 +59,7 @@ const App = () => {
           <Route path="/profile" element={<Profile />} />
           <Route path="/budgets" element={<Budgets />} />
           <Route path="/recurring-payments" element={<RecurringPayments />} />
+          <Route path="/manual" element={<Manual />} />
         </Route>
 
         {/* 404 */}

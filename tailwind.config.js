@@ -69,6 +69,7 @@ export default {
       },
     },
   },
+  darkMode: 'class',
   plugins: [require('daisyui')],
   daisyui: {
     themes: [
@@ -87,7 +88,8 @@ export default {
           error: '#f87272',
         },
       },
+      'dark',
+      'cupcake',
     ],
-    darkTheme: 'dark',
   },
 };

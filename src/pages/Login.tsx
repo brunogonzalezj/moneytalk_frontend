@@ -5,6 +5,7 @@ import { User, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import Button from '../components/ui/Button';
 import Logo from '../components/layout/Logo';
+import GoogleSignIn from '../components/GoogleSignIn';
 
 interface LoginFormValues {
   email: string;
@@ -40,16 +41,20 @@ const Login = () => {
       setErrorMessage(error.message || 'Ocurrió un error durante el inicio de sesión. Por favor, inténtalo de nuevo.');
     }
   };
+
+  const handleGoogleSuccess = () => {
+    navigate(from, { replace: true });
+  };
   
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center px-4">
-      <div className="card bg-white shadow-xl max-w-md w-full p-8 animate-fade-in">
+      <div className="card bg-base-100 shadow-xl max-w-md w-full p-8 animate-fade-in">
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-4">
             <Logo />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">¡Bienvenido de nuevo!</h1>
-          <p className="text-gray-600 mt-2">Inicia sesión para continuar en MoneyTalk</p>
+          <h1 className="text-2xl font-bold text-base-content">¡Bienvenido de nuevo!</h1>
+          <p className="text-base-content/70 mt-2">Inicia sesión para continuar en MoneyTalk</p>
         </div>
         
         {errorMessage && (
@@ -64,7 +69,7 @@ const Login = () => {
               <span className="label-text font-medium">Correo electrónico</span>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/30">
                 <User size={18} />
               </span>
               <input
@@ -95,7 +100,7 @@ const Login = () => {
               </a>
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content/30">
                 <KeyRound size={18} />
               </span>
               <input
@@ -112,7 +117,7 @@ const Login = () => {
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-base-content/30 hover:text-base-content/60"
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -134,17 +139,21 @@ const Login = () => {
             Iniciar Sesión
           </Button>
         </form>
-        
+
+        <div className="mt-6">
+          <GoogleSignIn mode="signin" onSuccess={handleGoogleSuccess} />
+        </div>
+
         <div className="text-center mt-6">
-          <p className="text-gray-600">
+          <p className="text-base-content/70">
             ¿No tienes una cuenta?{' '}
             <Link to="/signup" className="text-primary font-medium hover:underline">
               Regístrate
             </Link>
           </p>
         </div>
-        
-        <div className="text-center mt-8 text-sm text-gray-500">
+
+        <div className="text-center mt-8 text-sm text-base-content/50">
           <p>Usa tus credenciales reales del backend</p>
         </div>
       </div>

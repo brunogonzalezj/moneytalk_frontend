@@ -72,16 +72,16 @@ export const useBudgetStore = create<BudgetState>()(
       fetchBudgets: async () => {
         try {
           set({ isLoading: true });
-          
+
           const user = useAuthStore.getState().user;
           if (!user) {
             set({ isLoading: false });
             return;
           }
-          
-          const response = await apiClient.get('/budgets');
-          
-          const mappedBudgets = response.data.map((b: any) => ({
+
+          const response = await apiClient.get('/savings-goals');
+
+          const mappedBudgets = response.data.savingsGoals || response.data.map((b: any) => ({
             id: String(b.id),
             name: b.name,
             description: b.description,
@@ -93,7 +93,7 @@ export const useBudgetStore = create<BudgetState>()(
             createdAt: b.createdAt,
             updatedAt: b.updatedAt,
           }));
-          
+
           set({ budgets: mappedBudgets, isLoading: false });
         } catch (error) {
           console.error('Error fetching budgets:', error);
@@ -107,41 +107,29 @@ export const useBudgetStore = create<BudgetState>()(
           const user = useAuthStore.getState().user;
           if (!user) throw new Error('Usuario no autenticado');
 
-          const now = new Date();
           const budgetData: any = {
-            ...data,
-            userId: parseInt(user.id),
-            currentAmount: 0,
-            categoryId: 1,
-            period: 'CUSTOM',
-            amount: data.targetAmount,
+            name: data.name,
+            description: data.description || '',
+            type: data.type,
+            targetAmount: data.targetAmount,
+            targetDate: data.targetDate ? new Date(data.targetDate).toISOString() : undefined,
+            status: data.status || 'ACTIVE',
           };
 
-          if (!budgetData.targetDate) {
-            const oneYearFromNow = new Date(now);
-            oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-            budgetData.targetDate = oneYearFromNow.toISOString();
-          } else if (!budgetData.targetDate.includes('T')) {
-            budgetData.targetDate = new Date(budgetData.targetDate + 'T23:59:59').toISOString();
-          }
+          console.log('🔍 Sending savings goal data:', budgetData);
 
-          budgetData.startDate = now.toISOString();
-          budgetData.endDate = budgetData.targetDate;
+          const response = await apiClient.post('/savings-goals', budgetData);
 
-          console.log('🔍 Sending budget data:', budgetData);
-
-          const response = await apiClient.post('/budgets', budgetData);
-
-          console.log('✅ Budget created:', response.data);
+          console.log('✅ Savings goal created:', response.data);
 
           const newBudget = {
             id: String(response.data.id),
             name: response.data.name,
             description: response.data.description,
             type: response.data.type as BudgetType,
-            targetAmount: Number(response.data.targetAmount || response.data.amount),
+            targetAmount: Number(response.data.targetAmount),
             currentAmount: Number(response.data.currentAmount || 0),
-            targetDate: response.data.targetDate || response.data.endDate,
+            targetDate: response.data.targetDate,
             status: response.data.status as BudgetStatus,
             createdAt: response.data.createdAt,
             updatedAt: response.data.updatedAt,
@@ -151,60 +139,64 @@ export const useBudgetStore = create<BudgetState>()(
             budgets: [newBudget, ...state.budgets],
           }));
 
-          toast.success('Presupuesto creado exitosamente');
+          toast.success('Meta de ahorro creada exitosamente');
         } catch (error: any) {
-          console.error('Error adding budget:', error);
+          console.error('Error adding savings goal:', error);
           console.error('Error details:', error.response?.data);
-          toast.error('Error al crear presupuesto');
+          toast.error('Error al crear meta de ahorro');
         }
       },
 
       updateBudget: async (id, data) => {
         try {
-          await apiClient.put(`/budgets/${id}`, data);
-          
+          await apiClient.put(`/savings-goals/${id}`, data);
+
           set(state => ({
-            budgets: state.budgets.map(b => 
+            budgets: state.budgets.map(b =>
               b.id === id ? { ...b, ...data } : b
             ),
           }));
-          
-          toast.success('Presupuesto actualizado');
+
+          toast.success('Meta de ahorro actualizada');
         } catch (error) {
-          console.error('Error updating budget:', error);
-          toast.error('Error al actualizar presupuesto');
+          console.error('Error updating savings goal:', error);
+          toast.error('Error al actualizar meta de ahorro');
         }
       },
 
       deleteBudget: async (id) => {
         try {
-          await apiClient.delete(`/budgets/${id}`);
-          
+          await apiClient.delete(`/savings-goals/${id}`);
+
           set(state => ({
             budgets: state.budgets.filter(b => b.id !== id),
           }));
-          
-          toast.success('Presupuesto eliminado');
+
+          toast.success('Meta de ahorro eliminada');
         } catch (error) {
-          console.error('Error deleting budget:', error);
-          toast.error('Error al eliminar presupuesto');
+          console.error('Error deleting savings goal:', error);
+          toast.error('Error al eliminar meta de ahorro');
         }
       },
 
       addToBudget: async (id, amount) => {
         try {
-          await apiClient.post(`/budgets/${id}/add`, { amount });
-          
+          const response = await apiClient.post(`/savings-goals/${id}/add`, { amount });
+
+          // Update with the response data to ensure consistency
+          const updatedGoal = response.data.goal;
+
           set(state => ({
-            budgets: state.budgets.map(b => 
-              b.id === id ? { ...b, currentAmount: b.currentAmount + amount } : b
+            budgets: state.budgets.map(b =>
+              b.id === id ? updatedGoal : b
             ),
           }));
-          
-          toast.success('Monto agregado al presupuesto');
-        } catch (error) {
-          console.error('Error adding to budget:', error);
-          toast.error('Error al agregar al presupuesto');
+
+          toast.success('Monto agregado a la meta de ahorro');
+        } catch (error: any) {
+          console.error('Error adding to savings goal:', error);
+          const errorMessage = error.response?.data?.error || 'Error al agregar a la meta de ahorro';
+          toast.error(errorMessage);
         }
       },
 
@@ -382,8 +374,9 @@ export const useBudgetStore = create<BudgetState>()(
 
       getAvailableBalance: (totalIncome, totalExpenses, includeRecurring = true) => {
         const budgetAllocations = get().getTotalBudgetAllocations();
-        const recurringPayments = includeRecurring ? get().getTotalRecurringPayments() : 0;
-        return totalIncome - totalExpenses - budgetAllocations - recurringPayments;
+        // Usar solo pagos recurrentes que se procesaron hoy, no todos los futuros
+        const todaysRecurringPayments = includeRecurring ? get().getTodaysRecurringPayments() : 0;
+        return totalIncome - totalExpenses - budgetAllocations - todaysRecurringPayments;
       },
     }),
     {
