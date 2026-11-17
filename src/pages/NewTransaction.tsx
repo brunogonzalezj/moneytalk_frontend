@@ -299,6 +299,16 @@ const NewTransaction = () => {
         const item = batch[index];
         reset({description: item.description, amount: item.amount, category: item.categoryId, type: item.type, date: item.date});
         setEditingBatchIndex(index);
+        // On phones the form sits below the fold
+        requestAnimationFrame(() => document.getElementById('transaction-form')?.scrollIntoView({behavior: 'smooth', block: 'start'}));
+    };
+
+    // Closing the review discards the cards still pending
+    const handleBatchClose = () => {
+        if (!batch) return;
+        const items = batch.map((item) => (item.status === 'pending' ? {...item, status: 'discarded' as const} : item));
+        setBatch(items);
+        advanceBatch(items, batchIndex);
     };
 
     const handleBatchCreateSuggested = async (index: number) => {
@@ -595,9 +605,11 @@ const NewTransaction = () => {
                     onEdit={handleBatchEdit}
                     onDiscard={handleBatchDiscard}
                     onSaveAll={() => void handleBatchSaveAll()}
+                    onClose={handleBatchClose}
                 />
             ) : (
-            <Card>
+            <Card className="scroll-mt-4">
+                <div id="transaction-form" />
                 {batch && editingBatchIndex !== null && (
                     <div className="flex items-center justify-between gap-3 mb-4 rounded-lg bg-primary-50 dark:bg-primary-900/30 px-3 py-2 text-sm">
                         <p className="font-semibold text-primary-800 dark:text-primary-200">

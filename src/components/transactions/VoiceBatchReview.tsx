@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Pencil, Save, Sparkles, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pencil, Save, Sparkles, Trash2, X } from 'lucide-react';
 import Button from '../ui/Button';
 import formatCurrency from '../../utils/formatCurrency';
 import { formatShortDate } from '../../utils/date';
@@ -29,11 +29,14 @@ interface VoiceBatchReviewProps {
   onEdit: (index: number) => void;
   onDiscard: (index: number) => void;
   onSaveAll: () => void;
+  /** Closes the review, discarding the cards still pending */
+  onClose: () => void;
 }
 
 /**
  * Cards for reviewing, one at a time, the transactions found in a single dictation:
  * each one is saved, edited in the full form, or discarded.
+ * On phones it opens as a bottom sheet over the page, so the result is seen without scrolling.
  */
 const VoiceBatchReview = ({
   items,
@@ -47,6 +50,7 @@ const VoiceBatchReview = ({
   onEdit,
   onDiscard,
   onSaveAll,
+  onClose,
 }: VoiceBatchReviewProps) => {
   const pending = items.map((item, i) => (item.status === 'pending' ? i : -1)).filter((i) => i >= 0);
   const item = items[index];
@@ -60,31 +64,45 @@ const VoiceBatchReview = ({
   const readyToSaveAll = pending.length > 1 && pending.every((i) => items[i].categoryId);
 
   return (
-    <section aria-labelledby="batch-title" className="w-full max-w-md mx-auto animate-fade-in">
-      <div className="flex items-center justify-between mb-3">
+    <div className="fixed inset-0 z-[60] flex items-end md:static md:z-auto md:block" role="dialog" aria-modal="true" aria-labelledby="batch-title">
+      <div className="absolute inset-0 bg-black/50 md:hidden animate-fade-in" aria-hidden="true" />
+    <section className="relative w-full max-h-[90dvh] overflow-y-auto overscroll-contain rounded-t-2xl bg-base-200 dark:bg-gray-900 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.18)] animate-slide-up md:max-h-none md:overflow-visible md:max-w-md md:mx-auto md:rounded-none md:bg-transparent md:dark:bg-transparent md:p-0 md:shadow-none md:animate-fade-in">
+      <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600 md:hidden" aria-hidden="true" />
+      <div className="flex items-center justify-between gap-3 mb-3">
         <p id="batch-title" className="flex items-center gap-2 text-sm font-semibold text-primary-700 dark:text-primary-300">
           <Sparkles size={16} />
           Encontré {items.length} transacciones
         </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
-          {position + 1} de {pending.length} por revisar
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
+            {position + 1} de {pending.length}
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            aria-label="Cerrar y descartar las que faltan"
+            className="p-1 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         <button
           type="button"
           onClick={() => previous !== undefined && onIndexChange(previous)}
           disabled={previous === undefined || busy}
           aria-label="Transacción anterior"
-          className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent"
+          className="p-1 sm:p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent"
         >
           <ChevronLeft size={20} />
         </button>
 
         <article
           key={index}
-          className="flex-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-[0_1px_2px_rgba(16,24,40,0.06),0_4px_12px_-2px_rgba(16,24,40,0.08)] animate-slide-up"
+          className="flex-1 min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-[0_1px_2px_rgba(16,24,40,0.06),0_4px_12px_-2px_rgba(16,24,40,0.08)] animate-slide-up"
         >
           <div className="flex items-start justify-between gap-3">
             <span
@@ -132,24 +150,25 @@ const VoiceBatchReview = ({
             </button>
           )}
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={() => onDiscard(index)} disabled={busy} icon={<Trash2 size={14} />}>
-              Descartar
-            </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => onEdit(index)} disabled={busy} icon={<Pencil size={14} />}>
-              Editar
-            </Button>
+          {/* Save spans the card; edit and discard share the row below, so labels fit on narrow phones */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
             <Button
               type="button"
               variant="primary"
-              size="sm"
               onClick={() => onSave(index)}
               disabled={!item.categoryId}
               isLoading={busy}
-              icon={<Save size={14} />}
+              icon={<Save size={16} />}
               title={item.categoryId ? undefined : 'Elige una categoría para guardar'}
+              className="col-span-2 justify-center"
             >
               Guardar
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => onEdit(index)} disabled={busy} icon={<Pencil size={14} />} className="justify-center">
+              Editar
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => onDiscard(index)} disabled={busy} icon={<Trash2 size={14} />} className="justify-center">
+              Descartar
             </Button>
           </div>
         </article>
@@ -159,7 +178,7 @@ const VoiceBatchReview = ({
           onClick={() => next !== undefined && onIndexChange(next)}
           disabled={next === undefined || busy}
           aria-label="Transacción siguiente"
-          className="p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent"
+          className="p-1 sm:p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent"
         >
           <ChevronRight size={20} />
         </button>
@@ -195,6 +214,7 @@ const VoiceBatchReview = ({
         </div>
       )}
     </section>
+    </div>
   );
 };
 
