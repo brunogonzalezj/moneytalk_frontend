@@ -52,6 +52,11 @@ interface SpeechRecognitionResult {
 
 const UNSUPPORTED_MESSAGE = 'Tu navegador no permite el reconocimiento de voz. Prueba con Chrome o Edge, o escribe la transacción.';
 
+// Silence after the last understood words that ends a dictation
+const PAUSE_MS = 1500;
+// How long to wait for the browser to confirm the end before moving on without it
+const END_FALLBACK_MS = 800;
+
 const getRecognitionClass = () =>
   typeof window === 'undefined' ? undefined : window.SpeechRecognition ?? window.webkitSpeechRecognition;
 
@@ -64,6 +69,10 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
   const isSupported = Boolean(getRecognitionClass());
   const error = isSupported ? recognitionError : UNSUPPORTED_MESSAGE;
 
+  // Ends the dictation: some phones never report the end of speech, so listening also ends on a pause
+  // after the last words, or right away when the user taps the mic, without waiting for the browser
+  const finishRef = useRef<() => void>(() => {});
+
   useEffect(() => {
     const SpeechRecognition = getRecognitionClass();
     if (!SpeechRecognition) return;
@@ -73,6 +82,25 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     instance.interimResults = true;
     instance.lang = 'es-MX';
 
+    let pauseTimer: ReturnType<typeof setTimeout> | undefined;
+    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+    let heardFinal = false;
+    const clearTimers = () => {
+      clearTimeout(pauseTimer);
+      clearTimeout(fallbackTimer);
+    };
+    const finish = () => {
+      clearTimers();
+      instance.stop();
+      // onend normally arrives within a moment, with any last words; if it never does, stop waiting
+      fallbackTimer = setTimeout(() => {
+        heardFinal = false;
+        setInterimTranscript('');
+        setIsListening(false);
+      }, END_FALLBACK_MS);
+    };
+    finishRef.current = finish;
+
     instance.onresult = (event) => {
       let finalTranscript = '';
       let interim = '';
@@ -81,10 +109,17 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
         else interim += event.results[i][0].transcript;
       }
       setInterimTranscript(interim);
-      if (finalTranscript) setTranscript((previous) => `${previous} ${finalTranscript}`);
+      if (finalTranscript) {
+        heardFinal = true;
+        setTranscript((previous) => `${previous} ${finalTranscript}`);
+      }
+      // Each new word restarts the pause; once something was understood, a pause ends the dictation
+      clearTimeout(pauseTimer);
+      if (heardFinal) pauseTimer = setTimeout(finish, PAUSE_MS);
     };
 
     instance.onerror = (event) => {
+      clearTimers();
       // Stopping on purpose fires "aborted"; that is not an error for the user
       if (event.error !== 'aborted') {
         setRecognitionError(SPEECH_ERRORS[event.error] ?? 'No se pudo reconocer la voz. Intenta de nuevo.');
@@ -93,20 +128,21 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
       setIsListening(false);
     };
 
-    // Stopping lets the last words arrive; isListening turns false in onend, once the transcript is complete
-    instance.onspeechend = () => {
-      instance.stop();
-    };
+    instance.onspeechend = finish;
 
     instance.onend = () => {
+      clearTimers();
+      heardFinal = false;
       setInterimTranscript('');
       setIsListening(false);
     };
 
     recognition.current = instance;
     return () => {
+      clearTimers();
       instance.stop();
       recognition.current = null;
+      finishRef.current = () => {};
     };
   }, []);
 
@@ -124,7 +160,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
   }, []);
 
   const stopListening = useCallback(() => {
-    if (recognition.current) recognition.current.stop();
+    if (recognition.current) finishRef.current();
     else setIsListening(false);
   }, []);
 
