@@ -106,7 +106,7 @@ const Header = () => {
 
   return (
     <header
-      className={`bg-white dark:bg-gray-800 px-4 py-4 flex items-center justify-between transition-shadow ${
+      className={`bg-white dark:bg-gray-800 px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] flex items-center justify-between transition-shadow ${
         isScrolled ? 'shadow-md dark:shadow-gray-700' : ''
       }`}
     >

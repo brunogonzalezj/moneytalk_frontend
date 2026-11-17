@@ -27,7 +27,9 @@ const Layout = () => {
   }, [setSidebarOpen]);
 
   return (
-    <div className="flex h-screen bg-base-200 dark:bg-gray-900 overflow-hidden">
+    // Pinned to the visible screen: on iOS 100vh is taller than what Safari shows, and the whole page
+    // could scroll away taking the header and the bottom bar with it
+    <div className="fixed inset-0 flex bg-base-200 dark:bg-gray-900 overflow-hidden">
       {/* Sidebar - Only visible on desktop */}
       <div className="hidden md:flex">
         <div
@@ -44,7 +46,7 @@ const Layout = () => {
         <Header />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-20 md:pb-6 bg-base-200 dark:bg-gray-900">
+        <main className="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:pb-6 bg-base-200 dark:bg-gray-900">
           <div className="container mx-auto">
             <Outlet />
           </div>

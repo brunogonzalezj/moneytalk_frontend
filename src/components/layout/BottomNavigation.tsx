@@ -8,7 +8,8 @@ const BottomNavigation = () => {
       <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700"></div>
       
       {/* Navigation items */}
-      <nav className="relative px-2 py-2">
+      {/* Clears the iPhone home indicator */}
+      <nav className="relative px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-around">
           {/* Dashboard */}
           <NavLink 
