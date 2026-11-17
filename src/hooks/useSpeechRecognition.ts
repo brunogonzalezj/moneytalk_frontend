@@ -30,6 +30,7 @@ interface SpeechRecognitionLike {
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
+  abort?: () => void;
 }
 
 declare global {
@@ -57,6 +58,10 @@ const UNSUPPORTED_MESSAGE = 'Tu navegador no permite el reconocimiento de voz. P
 const PAUSE_MS = 1500;
 // How long to wait for the browser to confirm the end before moving on without it
 const END_FALLBACK_MS = 800;
+// Without a single word heard by then (silence, a pending permission), listening ends instead of hanging
+const NO_SPEECH_MS = 8000;
+// Longest dictation
+const MAX_LISTEN_MS = 30_000;
 
 const getRecognitionClass = () =>
   typeof window === 'undefined' ? undefined : window.SpeechRecognition ?? window.webkitSpeechRecognition;
@@ -87,6 +92,8 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
 
     let pauseTimer: ReturnType<typeof setTimeout> | undefined;
     let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+    let noSpeechTimer: ReturnType<typeof setTimeout> | undefined;
+    let maxTimer: ReturnType<typeof setTimeout> | undefined;
     let heardSpeech = false;
     // Results that arrive after the dictation was closed are ignored, so nothing is analyzed twice
     let ended = false;
@@ -96,6 +103,8 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     const clearTimers = () => {
       clearTimeout(pauseTimer);
       clearTimeout(fallbackTimer);
+      clearTimeout(noSpeechTimer);
+      clearTimeout(maxTimer);
     };
     // Closes the dictation once. iOS Safari may stop without ever marking the words as final,
     // so the last words heard become the transcript instead of being lost
@@ -123,12 +132,18 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
 
     const begin = () => {
       ended = false;
+      clearTimers();
+      noSpeechTimer = setTimeout(finish, NO_SPEECH_MS);
+      maxTimer = setTimeout(finish, MAX_LISTEN_MS);
     };
     beginRef.current = begin;
-    instance.onstart = begin;
+    instance.onstart = () => {
+      if (ended) begin();
+    };
 
     instance.onresult = (event) => {
       if (ended) return;
+      clearTimeout(noSpeechTimer);
       let finalTranscript = '';
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -178,10 +193,19 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     setTranscript('');
     setInterimTranscript('');
     beginRef.current();
+    const instance = recognition.current;
     try {
-      recognition.current.start();
+      instance.start();
     } catch {
-      // start() throws if recognition is already running; nothing to do
+      // Still running from a previous dictation: abort it and start again
+      instance.abort?.();
+      setTimeout(() => {
+        try {
+          instance.start();
+        } catch {
+          finishRef.current();
+        }
+      }, 300);
     }
   }, []);
 

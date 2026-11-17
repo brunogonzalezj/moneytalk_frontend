@@ -1,24 +1,26 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { useUIStore } from './stores/uiStore';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Spinner from './components/ui/Spinner';
+import AppErrorBoundary from './components/AppErrorBoundary';
+import { lazyPage } from './utils/lazyPage';
 
-// Lazy loaded pages
-const Login = lazy(() => import('./pages/Login'));
-const Signup = lazy(() => import('./pages/Signup'));
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Transactions = lazy(() => import('./pages/Transactions'));
-const NewTransaction = lazy(() => import('./pages/NewTransaction'));
-const Reports = lazy(() => import('./pages/Reports'));
-const Profile = lazy(() => import('./pages/Profile'));
-const NotFound = lazy(() => import('./pages/NotFound'));
-const Offline = lazy(() => import('./pages/Offline'));
-const Budgets = lazy(() => import('./pages/Budgets'));
-const RecurringPayments = lazy(() => import('./pages/RecurringPayments'));
-const Manual = lazy(() => import('./pages/Manual'));
+// Lazy loaded pages; a page file missing after a deploy reloads the app once
+const Login = lazyPage(() => import('./pages/Login'));
+const Signup = lazyPage(() => import('./pages/Signup'));
+const Dashboard = lazyPage(() => import('./pages/Dashboard'));
+const Transactions = lazyPage(() => import('./pages/Transactions'));
+const NewTransaction = lazyPage(() => import('./pages/NewTransaction'));
+const Reports = lazyPage(() => import('./pages/Reports'));
+const Profile = lazyPage(() => import('./pages/Profile'));
+const NotFound = lazyPage(() => import('./pages/NotFound'));
+const Offline = lazyPage(() => import('./pages/Offline'));
+const Budgets = lazyPage(() => import('./pages/Budgets'));
+const RecurringPayments = lazyPage(() => import('./pages/RecurringPayments'));
+const Manual = lazyPage(() => import('./pages/Manual'));
 
 const App = () => {
   const checkAuth = useAuthStore((state) => state.checkAuth);
@@ -40,6 +42,7 @@ const App = () => {
   }
 
   return (
+    <AppErrorBoundary>
     <Suspense fallback={
       <div className="h-screen flex items-center justify-center">
         <Spinner size="large" />
@@ -68,6 +71,7 @@ const App = () => {
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
+    </AppErrorBoundary>
   );
 };
 

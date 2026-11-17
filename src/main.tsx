@@ -3,7 +3,13 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import App from './App';
+import { reloadForNewVersion } from './utils/lazyPage';
 import './index.css';
+
+// A preloaded file of a previous version failed to load: reload once to pick up the new version
+window.addEventListener('vite:preloadError', (event) => {
+  if (reloadForNewVersion()) event.preventDefault();
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
