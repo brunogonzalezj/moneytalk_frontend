@@ -24,6 +24,8 @@ interface VoiceBatchReviewProps {
   busy: boolean;
   onIndexChange: (index: number) => void;
   onCategoryChange: (index: number, categoryId: string) => void;
+  /** Called when the category list is opened, so an empty list can be loaded again */
+  onCategoriesNeeded: () => void;
   onCreateSuggested: (index: number) => void;
   onSave: (index: number) => void;
   onEdit: (index: number) => void;
@@ -45,6 +47,7 @@ const VoiceBatchReview = ({
   busy,
   onIndexChange,
   onCategoryChange,
+  onCategoriesNeeded,
   onCreateSuggested,
   onSave,
   onEdit,
@@ -130,6 +133,7 @@ const VoiceBatchReview = ({
             className="select select-bordered select-sm w-full mt-1"
             value={item.categoryId}
             onChange={(e) => onCategoryChange(index, e.target.value)}
+            onFocus={onCategoriesNeeded}
             disabled={busy}
           >
             <option value="">Selecciona una categoría</option>

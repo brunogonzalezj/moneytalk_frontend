@@ -15,7 +15,7 @@ import {todayIso} from '../utils/date';
 import {aiApi} from '../api/ai.api';
 import {getErrorMessage, notifyError} from '../api/errors';
 import VoiceBatchReview, {BatchItem} from '../components/transactions/VoiceBatchReview';
-import {CategorizeResult} from '../types/domain';
+import {CategorizeResult, Category} from '../types/domain';
 
 
 interface TransactionFormValues {
@@ -95,8 +95,8 @@ const NewTransaction = () => {
         );
     };
 
-    const categoryIdFor = (result: CategorizeResult) => {
-        const matched = categories.find(
+    const categoryIdFor = (result: CategorizeResult, list: Category[] = categories) => {
+        const matched = list.find(
             (cat) => cat.name.toLowerCase() === result.categoryName.toLowerCase() && cat.type === result.transactionTypeExtracted
         );
         return matched ? String(matched.id) : '';
@@ -111,7 +111,11 @@ const NewTransaction = () => {
         setEditingBatchIndex(null);
 
         try {
-            const result = await aiApi.categorize(text);
+            const [result, list] = await Promise.all([
+                aiApi.categorize(text),
+                // The AI names a category; matching it needs the list, so it is loaded again if it came back empty
+                categories.length ? Promise.resolve(categories) : fetchCategories(true),
+            ]);
 
             // Several transactions: review them as cards instead of filling the form
             if (result.transactions && result.transactions.length > 1) {
@@ -121,7 +125,7 @@ const NewTransaction = () => {
                     amount: item.amountExtracted,
                     description: item.descriptionExtracted,
                     date: item.dateExtracted || todayIso(),
-                    categoryId: categoryIdFor(item),
+                    categoryId: categoryIdFor(item, list),
                     suggestedCategory: item.suggestedCategory,
                     status: 'pending',
                 })));
@@ -153,7 +157,7 @@ const NewTransaction = () => {
             }
 
             // The server already matched the name to one of the user's categories
-            setValue('category', categoryIdFor(result));
+            setValue('category', categoryIdFor(result, list));
             setAiFilled(true);
             if (result.confidence <= 0.7) {
                 toast('Revisa los datos: la categorización tiene baja confianza.');
@@ -220,6 +224,11 @@ const NewTransaction = () => {
         setSuggestedCategory(null);
         setShowCategoryCreationDialog(false);
         toast('Selecciona una categoría existente');
+    };
+
+    // Opening a category list that came back empty asks the server again
+    const reloadCategoriesIfEmpty = () => {
+        if (!categories.length) void fetchCategories(true);
     };
 
     const updateBatchItem = (index: number, changes: Partial<BatchItem>) =>
@@ -600,6 +609,7 @@ const NewTransaction = () => {
                     busy={isSavingBatch}
                     onIndexChange={setBatchIndex}
                     onCategoryChange={(index, categoryId) => updateBatchItem(index, {categoryId})}
+                    onCategoriesNeeded={reloadCategoriesIfEmpty}
                     onCreateSuggested={(index) => void handleBatchCreateSuggested(index)}
                     onSave={(index) => void handleBatchSave(index)}
                     onEdit={handleBatchEdit}
@@ -746,6 +756,7 @@ const NewTransaction = () => {
                             <span className="label-text font-medium">Categoría</span>
                         </label>
                         <select
+                            onFocus={reloadCategoriesIfEmpty}
                             className={`select select-bordered w-full ${errors.category ? 'select-error' : ''}`}
                             {...register('category', {
                                 required: 'La categoría es requerida',

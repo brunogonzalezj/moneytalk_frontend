@@ -84,7 +84,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
 
     let pauseTimer: ReturnType<typeof setTimeout> | undefined;
     let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
-    let heardFinal = false;
+    let heardSpeech = false;
     const clearTimers = () => {
       clearTimeout(pauseTimer);
       clearTimeout(fallbackTimer);
@@ -94,7 +94,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
       instance.stop();
       // onend normally arrives within a moment, with any last words; if it never does, stop waiting
       fallbackTimer = setTimeout(() => {
-        heardFinal = false;
+        heardSpeech = false;
         setInterimTranscript('');
         setIsListening(false);
       }, END_FALLBACK_MS);
@@ -110,12 +110,14 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
       }
       setInterimTranscript(interim);
       if (finalTranscript) {
-        heardFinal = true;
+        heardSpeech = true;
         setTranscript((previous) => `${previous} ${finalTranscript}`);
       }
-      // Each new word restarts the pause; once something was understood, a pause ends the dictation
+      // Each new word restarts the pause; once anything was heard, a pause ends the dictation.
+      // iOS Safari marks nothing as final until listening stops, so interim words count too
+      if (interim) heardSpeech = true;
       clearTimeout(pauseTimer);
-      if (heardFinal) pauseTimer = setTimeout(finish, PAUSE_MS);
+      if (heardSpeech) pauseTimer = setTimeout(finish, PAUSE_MS);
     };
 
     instance.onerror = (event) => {
@@ -132,7 +134,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
 
     instance.onend = () => {
       clearTimers();
-      heardFinal = false;
+      heardSpeech = false;
       setInterimTranscript('');
       setIsListening(false);
     };

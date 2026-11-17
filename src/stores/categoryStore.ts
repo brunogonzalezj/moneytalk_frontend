@@ -31,7 +31,8 @@ export const useCategoryStore = create<CategoryState>((set, get) => ({
       set({ isLoading: true });
       try {
         const list = await categoriesApi.list();
-        set({ categories: list, loadedAt: Date.now() });
+        // An empty answer is not cached, so the next screen asks again
+        set({ categories: list, loadedAt: list.length ? Date.now() : null });
         return list;
       } catch (error) {
         notifyError(error, 'No se pudieron cargar las categorías');
