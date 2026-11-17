@@ -13,6 +13,8 @@ cleanupOutdatedCaches();
 // Client-side routes (/dashboard, /reports...) load the cached index.html
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')));
 
+// A new version takes over as soon as it is installed, so a deploy reaches users on their next load
+void self.skipWaiting();
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') void self.skipWaiting();
 });

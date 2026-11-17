@@ -11,7 +11,8 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      registerType: 'prompt',
+      // No update prompt exists in the UI, so new versions install and reload on their own
+      registerType: 'autoUpdate',
       injectRegister: 'auto',
       includeAssets: ['icon.svg'],
       injectManifest: {
