@@ -13,6 +13,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import formatCurrency from '../utils/formatCurrency';
 import ExportDataModal from '../components/transactions/ExportDataModal';
+import useOfflineDetection from '../hooks/useOfflineDetection';
 import EditTransactionModal from '../components/transactions/EditTransactionModal';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -92,6 +93,7 @@ const Transactions = () => {
     setDateRange({ from: '', to: '' });
   };
   
+  const { isOnline } = useOfflineDetection();
   const handleExport = () => setIsExportModalOpen(true);
   const handleConfirmExport = (payload: { fromDate: string; toDate: string; format: 'csv' | 'xlsx' }) => exportTransactions(payload);
 
@@ -108,6 +110,8 @@ const Transactions = () => {
             variant="outline" 
             icon={<Download size={16} />}
             onClick={handleExport}
+            disabled={!isOnline}
+            title={isOnline ? undefined : 'Necesitas conexión a internet para exportar'}
           >
             Exportar
           </Button>

@@ -30,6 +30,10 @@ interface BudgetState {
 }
 
 const MONTHLY_FACTOR: Record<RecurringFrequency, number> = { DAILY: 30, WEEKLY: 52 / 12, MONTHLY: 1, YEARLY: 1 / 12 };
+
+// What a recurring payment costs per month, whatever its frequency
+export const toMonthlyAmount = (payment: Pick<RecurringPayment, 'amount' | 'frequency'>) =>
+  payment.amount * MONTHLY_FACTOR[payment.frequency];
 const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
 
 const initialState = {
@@ -163,7 +167,7 @@ export const useBudgetStore = create<BudgetState>()((set, get) => ({
   getTotalRecurringPayments: () =>
     get()
       .recurringPayments.filter((p) => p.status === 'ACTIVE')
-      .reduce((total, p) => total + p.amount * MONTHLY_FACTOR[p.frequency], 0),
+      .reduce((total, p) => total + toMonthlyAmount(p), 0),
 }));
 
 registerReset(() => useBudgetStore.setState(initialState));

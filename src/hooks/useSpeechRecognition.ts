@@ -16,7 +16,6 @@ const SPEECH_ERRORS: Record<string, string> = {
   'not-allowed': 'Permite el acceso al micrófono para usar la entrada por voz.',
   'service-not-allowed': 'Permite el acceso al micrófono para usar la entrada por voz.',
   network: 'El reconocimiento de voz necesita conexión a internet.',
-  aborted: 'Se canceló la grabación.',
 };
 
 // The slice of the Web Speech API this hook uses
@@ -41,6 +40,9 @@ declare global {
 
 interface SpeechRecognitionResult {
   transcript: string;
+  /** Words recognized so far while the user is still speaking */
+  interimTranscript: string;
+  isSupported: boolean;
   isListening: boolean;
   error: string | null;
   startListening: () => void;
@@ -55,6 +57,7 @@ const getRecognitionClass = () =>
 
 export const useSpeechRecognition = (): SpeechRecognitionResult => {
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [recognitionError, setRecognitionError] = useState<string | null>(null);
   const recognition = useRef<SpeechRecognitionLike | null>(null);
@@ -72,14 +75,21 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
 
     instance.onresult = (event) => {
       let finalTranscript = '';
+      let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+        else interim += event.results[i][0].transcript;
       }
+      setInterimTranscript(interim);
       if (finalTranscript) setTranscript((previous) => `${previous} ${finalTranscript}`);
     };
 
     instance.onerror = (event) => {
-      setRecognitionError(SPEECH_ERRORS[event.error] ?? 'No se pudo reconocer la voz. Intenta de nuevo.');
+      // Stopping on purpose fires "aborted"; that is not an error for the user
+      if (event.error !== 'aborted') {
+        setRecognitionError(SPEECH_ERRORS[event.error] ?? 'No se pudo reconocer la voz. Intenta de nuevo.');
+      }
+      setInterimTranscript('');
       setIsListening(false);
     };
 
@@ -88,7 +98,10 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
       setIsListening(false);
     };
 
-    instance.onend = () => setIsListening(false);
+    instance.onend = () => {
+      setInterimTranscript('');
+      setIsListening(false);
+    };
 
     recognition.current = instance;
     return () => {
@@ -102,6 +115,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     setRecognitionError(null);
     setIsListening(true);
     setTranscript('');
+    setInterimTranscript('');
     try {
       recognition.current.start();
     } catch {
@@ -120,6 +134,8 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
 
   return {
     transcript: transcript.trim(),
+    interimTranscript: interimTranscript.trim(),
+    isSupported,
     isListening,
     error,
     startListening,

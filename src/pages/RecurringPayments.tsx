@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Plus, Calendar, Clock, Edit, Trash2, RefreshCw } from 'lucide-react';
-import { useBudgetStore, RecurringPayment, RecurringFrequency } from '../stores/budgetStore';
+import { useBudgetStore, RecurringPayment, RecurringFrequency, toMonthlyAmount } from '../stores/budgetStore';
 import { useForm } from 'react-hook-form';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -356,9 +356,16 @@ const RecurringPayments = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600 dark:text-gray-400">Monto</span>
-                <span className="figure text-xl font-extrabold text-accent-600 dark:text-accent-400">
-                  {formatCurrency(payment.amount)}
-                </span>
+                <div className="text-right">
+                  <div className="figure text-xl font-extrabold text-accent-600 dark:text-accent-400">
+                    {formatCurrency(payment.amount)}
+                  </div>
+                  {payment.frequency !== 'MONTHLY' && (
+                    <div className="figure text-xs text-gray-500 dark:text-gray-400">
+                      ≈ {formatCurrency(toMonthlyAmount(payment))} / mes
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-between items-center">

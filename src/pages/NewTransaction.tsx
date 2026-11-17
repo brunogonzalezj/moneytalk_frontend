@@ -1,15 +1,15 @@
 import {useState, useEffect, useRef} from 'react';
 import {useForm, Controller} from 'react-hook-form';
-import {Mic, MicOff, Save, ChevronDown, ChevronLeft} from 'lucide-react';
+import {Mic, MicOff, Save, ChevronDown, ChevronLeft, WifiOff, Sparkles, AlertCircle, CheckCircle2, Keyboard, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {TransactionType, useTransactionStore} from '../stores/transactionStore';
 import {useCategoryStore} from '../stores/categoryStore';
 import useSpeechRecognition from '../hooks/useSpeechRecognition';
+import useOfflineDetection from '../hooks/useOfflineDetection';
 import {useUIStore} from '../stores/uiStore';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import Spinner from '../components/ui/Spinner';
 import {parseCurrencyInput} from '../utils/formatCurrency';
 import {todayIso} from '../utils/date';
 import {aiApi} from '../api/ai.api';
@@ -40,13 +40,17 @@ const NewTransaction = () => {
     const fetchCategories = useCategoryStore((state) => state.fetchCategories);
     const createCategory = useCategoryStore((state) => state.createCategory);
     const navigate = useNavigate();
-    const {transcript, isListening, error, startListening, stopListening, resetTranscript} = useSpeechRecognition();
+    const {transcript, interimTranscript, isSupported, isListening, error, startListening, stopListening, resetTranscript} = useSpeechRecognition();
+    const {isOnline} = useOfflineDetection();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [voiceCommandsVisible, setVoiceCommandsVisible] = useState(false);
     const [isFetchingGPT, setIsFetchingGPT] = useState(false);
     const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
     const [validationError, setValidationError] = useState<string | null>(null);
     const [showCategoryCreationDialog, setShowCategoryCreationDialog] = useState(false);
+    const [aiFilled, setAiFilled] = useState(false);
+    const [showTextInput, setShowTextInput] = useState(false);
+    const [typedText, setTypedText] = useState('');
     // The transcript already sent to the AI, so each utterance is categorized once
     const processedTranscript = useRef('');
 
@@ -70,6 +74,11 @@ const NewTransaction = () => {
         if (isListening) reset(emptyForm());
     }, [isListening, reset]);
 
+    // Voice recognition and the AI both need internet: stop listening when the connection drops
+    useEffect(() => {
+        if (!isOnline && isListening) stopListening();
+    }, [isOnline, isListening, stopListening]);
+
     const fillForm = (values: Partial<TransactionFormValues>) => {
         (Object.entries(values) as [keyof TransactionFormValues, string | number][]).forEach(([field, value]) =>
             setValue(field, value as never)
@@ -80,6 +89,7 @@ const NewTransaction = () => {
         setIsFetchingGPT(true);
         setValidationError(null);
         setSuggestedCategory(null);
+        setAiFilled(false);
 
         try {
             const result = await aiApi.categorize(text);
@@ -87,8 +97,8 @@ const NewTransaction = () => {
             if (!result.isValidFinancialTransaction) {
                 const reason = result.rejectionReason || 'Describe un gasto o un ingreso con su monto';
                 setValidationError(reason);
-                setValue('description', '');
-                toast.error(reason);
+                // Nothing usable came out: don't leave data from a previous attempt in the form
+                reset(emptyForm());
                 return;
             }
 
@@ -112,16 +122,13 @@ const NewTransaction = () => {
                 (cat) => cat.name.toLowerCase() === result.categoryName.toLowerCase() && cat.type === result.transactionTypeExtracted
             );
             setValue('category', matched ? String(matched.id) : '');
-
-            if (result.confidence > 0.7) {
-                toast.success('Transacción categorizada correctamente');
-            } else {
+            setAiFilled(true);
+            if (result.confidence <= 0.7) {
                 toast('Revisa los datos: la categorización tiene baja confianza.');
             }
         } catch (apiError) {
             setValue('description', '');
             setValidationError(getErrorMessage(apiError, 'No se pudo procesar el texto'));
-            notifyError(apiError, 'No se pudo procesar el texto');
         } finally {
             setIsFetchingGPT(false);
         }
@@ -134,6 +141,33 @@ const NewTransaction = () => {
         void processVoiceInput(text);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [transcript]);
+
+    const handleAnalyzeTyped = (event: React.FormEvent) => {
+        event.preventDefault();
+        const text = typedText.trim();
+        if (!text || isFetchingGPT || !isOnline) return;
+        void processVoiceInput(text);
+    };
+
+    const handleMicClick = () => {
+        if (isListening) {
+            stopListening();
+            return;
+        }
+        setValidationError(null);
+        setAiFilled(false);
+        startListening();
+    };
+
+    // Escape closes the category dialog, like any other modal
+    useEffect(() => {
+        if (!showCategoryCreationDialog) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') handleRejectCategory();
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [showCategoryCreationDialog]);
 
     const handleCreateCategory = async () => {
         if (!suggestedCategory) return;
@@ -179,6 +213,10 @@ const NewTransaction = () => {
         }
     };
 
+    // Offline or unsupported the mic is unavailable; while the AI works it is only busy
+    const micUnavailable = !isOnline || !isSupported;
+    const micDisabled = micUnavailable || isFetchingGPT;
+
     const goBack = () => {
         navigate(-1); // Regresa a la página anterior en el historial
     };
@@ -203,20 +241,38 @@ const NewTransaction = () => {
                             className={`w-20 h-20 rounded-full flex items-center justify-center ${
                                 isListening
                                     ? 'bg-accent-100 dark:bg-accent-900/60 animate-pulse-slow'
-                                    : 'bg-primary-100 dark:bg-primary-900/60'
+                                    : micUnavailable
+                                        ? 'bg-gray-100 dark:bg-gray-800'
+                                        : 'bg-primary-100 dark:bg-primary-900/60'
                             }`}
                         >
                             <button
                                 type="button"
-                                onClick={isListening ? stopListening : startListening}
-                                className={`w-16 h-16 rounded-full flex items-center justify-center text-white transition-[transform,background-color,box-shadow] duration-200 active:scale-95 ${
-                                    isListening
-                                        ? 'bg-accent-600 hover:bg-accent-700 shadow-[0_6px_16px_-4px_rgba(231,61,62,0.55)]'
-                                        : 'bg-primary-600 hover:bg-primary-700 hover:scale-105 shadow-[0_6px_16px_-4px_rgba(5,150,105,0.55)]'
+                                onClick={handleMicClick}
+                                disabled={micDisabled}
+                                className={`w-16 h-16 rounded-full flex items-center justify-center transition-[transform,background-color,box-shadow] duration-200 ${
+                                    micUnavailable
+                                        ? 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 cursor-not-allowed'
+                                        : isFetchingGPT
+                                            ? 'bg-primary-600 text-white cursor-wait'
+                                            : isListening
+                                                ? 'bg-accent-600 hover:bg-accent-700 text-white active:scale-95 shadow-[0_6px_16px_-4px_rgba(231,61,62,0.55)]'
+                                                : 'bg-primary-600 hover:bg-primary-700 text-white hover:scale-105 active:scale-95 shadow-[0_6px_16px_-4px_rgba(5,150,105,0.55)]'
                                 }`}
-                                aria-label={isListening ? 'Detener grabación' : 'Iniciar grabación'}
+                                aria-label={
+                                    !isOnline ? 'Grabación no disponible sin conexión'
+                                        : !isSupported ? 'Grabación no disponible en este navegador'
+                                            : isFetchingGPT ? 'Analizando la transacción'
+                                                : isListening ? 'Detener grabación' : 'Iniciar grabación'
+                                }
+                                title={!isOnline ? 'Necesitas conexión a internet para usar la voz' : undefined}
+                                aria-pressed={isListening}
                             >
-                                {isListening ? (
+                                {!isOnline ? (
+                                    <WifiOff size={24}/>
+                                ) : isFetchingGPT ? (
+                                    <span className="w-6 h-6 rounded-full border-[3px] border-white/40 border-t-white animate-spin" aria-hidden="true"/>
+                                ) : isListening || !isSupported ? (
                                     <MicOff size={24}/>
                                 ) : (
                                     <Mic size={26}/>
@@ -232,43 +288,129 @@ const NewTransaction = () => {
                         )}
                     </div>
 
-                    {transcript && (
-                        <div className="w-full max-w-md bg-gray-50 dark:bg-gray-800 p-3 rounded-lg mb-3">
-                            <p className="text-gray-700 dark:text-gray-300 text-sm">Escuché:</p>
-                            <p className="text-gray-900 dark:text-gray-100 font-medium">{transcript}</p>
-                            <button
-                                type="button"
-                                onClick={resetTranscript}
-                                className="text-xs text-primary dark:text-primary-400 hover:underline mt-1"
-                            >
-                                Limpiar
-                            </button>
+                    {/* What the user is saying, live, and then the final text */}
+                    {(isListening || transcript) && (
+                        <div className="w-full max-w-md bg-gray-50 dark:bg-gray-800 p-3 rounded-lg mb-3" aria-live="polite">
+                            <p className="text-gray-700 dark:text-gray-300 text-sm">{isListening ? 'Escuchando:' : 'Escuché:'}</p>
+                            <p className="text-gray-900 dark:text-gray-100 font-medium min-h-[1.5rem]">
+                                {transcript}
+                                {interimTranscript && <span className="text-gray-500 dark:text-gray-400"> {interimTranscript}</span>}
+                                {isListening && !transcript && !interimTranscript && (
+                                    <span className="text-gray-400 dark:text-gray-500">…</span>
+                                )}
+                            </p>
+                            {transcript && !isListening && !isFetchingGPT && (
+                                <button
+                                    type="button"
+                                    onClick={resetTranscript}
+                                    className="text-xs text-primary dark:text-primary-400 hover:underline mt-1"
+                                >
+                                    Limpiar
+                                </button>
+                            )}
                         </div>
                     )}
 
-                    {error && (
-                        <div className="text-error text-sm mb-2">{error}</div>
-                    )}
+                    <div role="status" aria-live="polite" className="w-full max-w-md flex flex-col items-center">
+                        {!isOnline ? (
+                            <div className="w-full flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 mb-2 text-sm text-amber-900 dark:text-amber-200">
+                                <WifiOff size={18} className="mt-0.5 shrink-0"/>
+                                <p>
+                                    <span className="font-semibold">Sin conexión.</span> La voz y la IA necesitan internet. Puedes llenar
+                                    el formulario a mano: se guardará y se enviará al reconectar.
+                                </p>
+                            </div>
+                        ) : isFetchingGPT ? (
+                            <p className="flex items-center gap-2 text-sm font-semibold text-primary-700 dark:text-primary-300 mb-2">
+                                <Sparkles size={16} className="animate-pulse"/>
+                                Analizando con IA…
+                            </p>
+                        ) : validationError ? (
+                            <div className="w-full flex items-start gap-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 mb-2 text-sm">
+                                <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-500"/>
+                                <div className="flex-1">
+                                    <p className="font-semibold text-red-800 dark:text-red-300">No pude reconocer la transacción</p>
+                                    <p className="text-red-700 dark:text-red-300">{validationError}</p>
+                                    {isSupported && (
+                                        <button type="button" onClick={handleMicClick} className="mt-1 font-semibold text-red-800 dark:text-red-200 hover:underline">
+                                            Intentar de nuevo
+                                        </button>
+                                    )}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setValidationError(null)}
+                                    aria-label="Cerrar mensaje"
+                                    className="text-red-400 hover:text-red-600 dark:hover:text-red-300"
+                                >
+                                    <X size={16}/>
+                                </button>
+                            </div>
+                        ) : error ? (
+                            <div className="w-full flex items-start gap-2 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-3 mb-2 text-sm text-red-700 dark:text-red-300">
+                                <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-500"/>
+                                <p>{error}</p>
+                            </div>
+                        ) : aiFilled ? (
+                            <p className="flex items-center gap-2 text-sm font-semibold text-primary-700 dark:text-primary-300 mb-2">
+                                <CheckCircle2 size={16}/>
+                                Listo. Revisa los datos y guarda.
+                            </p>
+                        ) : (
+                            <p className="text-gray-700 dark:text-gray-300 text-sm font-medium text-center">
+                                {isListening
+                                    ? "Estoy escuchando... habla claramente e incluye el monto."
+                                    : "Toca el micrófono y describe tu transacción"
+                                }
+                            </p>
+                        )}
+                    </div>
 
-                    <p className="text-gray-700 dark:text-gray-300 text-sm font-medium text-center">
-                        {isListening
-                            ? "Estoy escuchando... habla claramente e incluye el monto."
-                            : "Toca el micrófono y describe tu transacción"
-                        }
-                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-2">
+                        {enableVoiceHints && (
+                            <button
+                                type="button"
+                                className="text-primary dark:text-primary-400 text-xs hover:underline flex items-center"
+                                onClick={() => setVoiceCommandsVisible(!voiceCommandsVisible)}
+                                aria-expanded={voiceCommandsVisible}
+                            >
+                                {voiceCommandsVisible ? 'Ocultar consejos' : 'Mostrar consejos'}
+                                <ChevronDown
+                                    size={14}
+                                    className={`ml-1 transform transition-transform ${voiceCommandsVisible ? 'rotate-180' : ''}`}
+                                />
+                            </button>
+                        )}
+                        {isOnline && (
+                            <button
+                                type="button"
+                                className="text-primary dark:text-primary-400 text-xs hover:underline flex items-center gap-1"
+                                onClick={() => setShowTextInput(!showTextInput)}
+                                aria-expanded={showTextInput || !isSupported}
+                            >
+                                <Keyboard size={14}/>
+                                {showTextInput || !isSupported ? 'Ocultar texto' : '¿Prefieres escribirlo?'}
+                            </button>
+                        )}
+                    </div>
 
-                    {enableVoiceHints && (
-                        <button
-                            type="button"
-                            className="text-primary dark:text-primary-400 text-xs mt-2 hover:underline flex items-center"
-                            onClick={() => setVoiceCommandsVisible(!voiceCommandsVisible)}
-                        >
-                            {voiceCommandsVisible ? 'Ocultar consejos' : 'Mostrar consejos'}
-                            <ChevronDown
-                                size={14}
-                                className={`ml-1 transform transition-transform ${voiceCommandsVisible ? 'rotate-180' : ''}`}
+                    {isOnline && (showTextInput || !isSupported) && (
+                        <form onSubmit={handleAnalyzeTyped} className="mt-3 w-full max-w-md flex gap-2">
+                            <label htmlFor="typed-transaction" className="sr-only">Describe tu transacción</label>
+                            <input
+                                id="typed-transaction"
+                                type="text"
+                                value={typedText}
+                                onChange={(e) => setTypedText(e.target.value)}
+                                placeholder='Ej: "Gasté 45 Bs en el supermercado ayer"'
+                                maxLength={500}
+                                className="input input-bordered input-sm w-full"
+                                disabled={isFetchingGPT}
                             />
-                        </button>
+                            <Button type="submit" variant="primary" size="sm" disabled={!typedText.trim() || isFetchingGPT} icon={<Sparkles size={14}/>}>
+                                Analizar
+                            </Button>
+                        </form>
                     )}
 
                     {voiceCommandsVisible && (
@@ -284,13 +426,9 @@ const NewTransaction = () => {
                     )}
                 </div>
             </Card>
-            {isFetchingGPT ? (
-                <div className="flex justify-center mb-4">
-                    <Spinner />
-                </div>
-            ):(
             <Card>
                 <form onSubmit={handleSubmit(onSubmit)}>
+                    <fieldset disabled={isFetchingGPT} aria-busy={isFetchingGPT} className={`transition-opacity ${isFetchingGPT ? 'opacity-50' : ''}`}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div className="form-control">
                             <label className="label">
@@ -436,31 +574,41 @@ const NewTransaction = () => {
                         )}
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
+                        {!isOnline && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 sm:mr-auto">
+                                Se guardará en este dispositivo y se enviará al reconectar.
+                            </p>
+                        )}
                         <Button
                             type="submit"
                             variant="primary"
                             isLoading={isSubmitting}
+                            disabled={isFetchingGPT}
                             icon={<Save size={16}/>}
                         >
                             Guardar Transacción
                         </Button>
                     </div>
+                    </fieldset>
                 </form>
-            </Card>)}
+            </Card>
 
             {/* Diálogo de confirmación para crear nueva categoría */}
             {showCategoryCreationDialog && suggestedCategory && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+                    onClick={(event) => event.target === event.currentTarget && handleRejectCategory()}
+                >
+                    <div role="dialog" aria-modal="true" aria-labelledby="new-category-title" className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+                        <h3 id="new-category-title" className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                             ¿Crear nueva categoría?
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400 mb-4">
                             La IA sugiere la categoría <span className="font-medium text-primary-600 dark:text-primary-400">"{suggestedCategory}"</span>
                             {" "}para esta transacción de tipo <span className="font-medium">{transactionType === 'INCOME' ? 'Ingreso' : 'Gasto'}</span>.
                         </p>
-                        <div className="flex justify-end space-x-3">
+                        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
                             <Button
                                 variant="outline"
                                 onClick={handleRejectCategory}
@@ -478,36 +626,6 @@ const NewTransaction = () => {
                 </div>
             )}
 
-            {/* Mensaje de error de validación */}
-            {validationError && (
-                <div className="fixed bottom-4 right-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 max-w-md z-50">
-                    <div className="flex items-start">
-                        <div className="flex-shrink-0">
-                            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                            </svg>
-                        </div>
-                        <div className="ml-3">
-                            <h3 className="text-sm font-medium text-red-800 dark:text-red-400">
-                                Transacción no reconocida
-                            </h3>
-                            <p className="mt-1 text-sm text-red-700 dark:text-red-300">
-                                {validationError}
-                            </p>
-                        </div>
-                        <div className="ml-auto pl-3">
-                            <button
-                                onClick={() => setValidationError(null)}
-                                className="inline-flex text-red-400 hover:text-red-600 dark:hover:text-red-300 focus:outline-none"
-                            >
-                                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

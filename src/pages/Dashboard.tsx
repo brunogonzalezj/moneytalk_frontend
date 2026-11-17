@@ -12,6 +12,7 @@ import StatCard from '../components/ui/StatCard';
 import formatCurrency from '../utils/formatCurrency';
 import Button from '../components/ui/Button';
 import { useAuthStore } from '../stores/authStore';
+import useOfflineDetection from '../hooks/useOfflineDetection';
 
 const Dashboard = () => {
   const fetchSummary = useTransactionStore((state) => state.fetchSummary);
@@ -71,6 +72,14 @@ const Dashboard = () => {
     }),
     [week]
   );
+
+  const { isOnline } = useOfflineDetection();
+
+  // Recommendations that failed (for example offline) are retried once the connection is back
+  useEffect(() => {
+    if (isOnline && recommendationsError) void fetchRecommendations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline]);
 
   const handleReloadRecommendations = async () => {
     await fetchRecommendations(true);
@@ -176,7 +185,8 @@ const Dashboard = () => {
            size="sm"
            icon={<RefreshCw size={16} className={isLoadingRecommendations ? 'animate-spin' : ''} />}
            onClick={handleReloadRecommendations}
-           disabled={isLoadingRecommendations}
+           disabled={isLoadingRecommendations || !isOnline}
+           title={isOnline ? undefined : 'Necesitas conexión a internet'}
          >
            Recargar
          </Button>
@@ -193,9 +203,11 @@ const Dashboard = () => {
          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
            <div>
              <p className="font-semibold text-gray-900 dark:text-gray-50">No se pudieron generar las recomendaciones</p>
-             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{recommendationsError}</p>
+             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+               {isOnline ? recommendationsError : 'Sin conexión. Se volverán a pedir al reconectar.'}
+             </p>
            </div>
-           <Button variant="outline" size="sm" icon={<RefreshCw size={16} />} onClick={() => void fetchRecommendations(true)}>
+           <Button variant="outline" size="sm" icon={<RefreshCw size={16} />} onClick={() => void fetchRecommendations(true)} disabled={!isOnline}>
              Reintentar
            </Button>
          </div>
