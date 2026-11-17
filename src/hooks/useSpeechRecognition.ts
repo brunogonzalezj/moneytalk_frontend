@@ -93,9 +93,9 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
       setIsListening(false);
     };
 
+    // Stopping lets the last words arrive; isListening turns false in onend, once the transcript is complete
     instance.onspeechend = () => {
       instance.stop();
-      setIsListening(false);
     };
 
     instance.onend = () => {
@@ -124,8 +124,8 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
   }, []);
 
   const stopListening = useCallback(() => {
-    recognition.current?.stop();
-    setIsListening(false);
+    if (recognition.current) recognition.current.stop();
+    else setIsListening(false);
   }, []);
 
   const resetTranscript = useCallback(() => {

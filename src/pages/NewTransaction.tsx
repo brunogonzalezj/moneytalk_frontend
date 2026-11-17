@@ -166,13 +166,15 @@ const NewTransaction = () => {
         }
     };
 
+    // The dictation is analyzed once, when listening ends: the browser delivers it in parts,
+    // and sending the first part alone would lose the other transactions
     useEffect(() => {
         const text = transcript.trim();
-        if (!text || text === processedTranscript.current) return;
+        if (isListening || !text || text === processedTranscript.current) return;
         processedTranscript.current = text;
         void processVoiceInput(text);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [transcript]);
+    }, [transcript, isListening]);
 
     const handleAnalyzeTyped = (event: React.FormEvent) => {
         event.preventDefault();
