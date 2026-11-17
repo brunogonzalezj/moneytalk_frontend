@@ -26,6 +26,7 @@ interface SpeechRecognitionLike {
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
   onspeechend: (() => void) | null;
+  onstart: (() => void) | null;
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
@@ -72,6 +73,8 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
   // Ends the dictation: some phones never report the end of speech, so listening also ends on a pause
   // after the last words, or right away when the user taps the mic, without waiting for the browser
   const finishRef = useRef<() => void>(() => {});
+  // Opens a new dictation, also when a browser does not fire onstart
+  const beginRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     const SpeechRecognition = getRecognitionClass();
@@ -85,23 +88,47 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     let pauseTimer: ReturnType<typeof setTimeout> | undefined;
     let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
     let heardSpeech = false;
+    // Results that arrive after the dictation was closed are ignored, so nothing is analyzed twice
+    let ended = false;
+    // What this dictation produced: the words marked final, and the latest words still in progress
+    let finalText = '';
+    let lastInterim = '';
     const clearTimers = () => {
       clearTimeout(pauseTimer);
       clearTimeout(fallbackTimer);
+    };
+    // Closes the dictation once. iOS Safari may stop without ever marking the words as final,
+    // so the last words heard become the transcript instead of being lost
+    const endSession = () => {
+      clearTimers();
+      if (ended) {
+        setIsListening(false);
+        return;
+      }
+      ended = true;
+      if (!finalText.trim() && lastInterim.trim()) setTranscript(lastInterim);
+      heardSpeech = false;
+      finalText = '';
+      lastInterim = '';
+      setInterimTranscript('');
+      setIsListening(false);
     };
     const finish = () => {
       clearTimers();
       instance.stop();
       // onend normally arrives within a moment, with any last words; if it never does, stop waiting
-      fallbackTimer = setTimeout(() => {
-        heardSpeech = false;
-        setInterimTranscript('');
-        setIsListening(false);
-      }, END_FALLBACK_MS);
+      fallbackTimer = setTimeout(endSession, END_FALLBACK_MS);
     };
     finishRef.current = finish;
 
+    const begin = () => {
+      ended = false;
+    };
+    beginRef.current = begin;
+    instance.onstart = begin;
+
     instance.onresult = (event) => {
+      if (ended) return;
       let finalTranscript = '';
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -109,8 +136,10 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
         else interim += event.results[i][0].transcript;
       }
       setInterimTranscript(interim);
+      if (interim.trim()) lastInterim = `${finalText} ${interim}`.trim();
       if (finalTranscript) {
         heardSpeech = true;
+        finalText = `${finalText} ${finalTranscript}`;
         setTranscript((previous) => `${previous} ${finalTranscript}`);
       }
       // Each new word restarts the pause; once anything was heard, a pause ends the dictation.
@@ -121,23 +150,16 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     };
 
     instance.onerror = (event) => {
-      clearTimers();
       // Stopping on purpose fires "aborted"; that is not an error for the user
       if (event.error !== 'aborted') {
         setRecognitionError(SPEECH_ERRORS[event.error] ?? 'No se pudo reconocer la voz. Intenta de nuevo.');
       }
-      setInterimTranscript('');
-      setIsListening(false);
+      endSession();
     };
 
     instance.onspeechend = finish;
 
-    instance.onend = () => {
-      clearTimers();
-      heardSpeech = false;
-      setInterimTranscript('');
-      setIsListening(false);
-    };
+    instance.onend = endSession;
 
     recognition.current = instance;
     return () => {
@@ -145,6 +167,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
       instance.stop();
       recognition.current = null;
       finishRef.current = () => {};
+      beginRef.current = () => {};
     };
   }, []);
 
@@ -154,6 +177,7 @@ export const useSpeechRecognition = (): SpeechRecognitionResult => {
     setIsListening(true);
     setTranscript('');
     setInterimTranscript('');
+    beginRef.current();
     try {
       recognition.current.start();
     } catch {
