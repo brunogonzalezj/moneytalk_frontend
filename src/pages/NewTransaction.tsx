@@ -14,6 +14,8 @@ import {parseCurrencyInput} from '../utils/formatCurrency';
 import {todayIso} from '../utils/date';
 import {aiApi} from '../api/ai.api';
 import {getErrorMessage, notifyError} from '../api/errors';
+import VoiceBatchReview, {BatchItem} from '../components/transactions/VoiceBatchReview';
+import {CategorizeResult} from '../types/domain';
 
 
 interface TransactionFormValues {
@@ -53,6 +55,11 @@ const NewTransaction = () => {
     const [typedText, setTypedText] = useState('');
     // The transcript already sent to the AI, so each utterance is categorized once
     const processedTranscript = useRef('');
+    // Several transactions in one dictation are reviewed one card at a time
+    const [batch, setBatch] = useState<BatchItem[] | null>(null);
+    const [batchIndex, setBatchIndex] = useState(0);
+    const [editingBatchIndex, setEditingBatchIndex] = useState<number | null>(null);
+    const [isSavingBatch, setIsSavingBatch] = useState(false);
 
     useEffect(() => {
         void fetchCategories();
@@ -71,7 +78,10 @@ const NewTransaction = () => {
     const transactionType = watch('type');
 
     useEffect(() => {
-        if (isListening) reset(emptyForm());
+        if (!isListening) return;
+        reset(emptyForm());
+        setBatch(null);
+        setEditingBatchIndex(null);
     }, [isListening, reset]);
 
     // Voice recognition and the AI both need internet: stop listening when the connection drops
@@ -85,14 +95,39 @@ const NewTransaction = () => {
         );
     };
 
+    const categoryIdFor = (result: CategorizeResult) => {
+        const matched = categories.find(
+            (cat) => cat.name.toLowerCase() === result.categoryName.toLowerCase() && cat.type === result.transactionTypeExtracted
+        );
+        return matched ? String(matched.id) : '';
+    };
+
     const processVoiceInput = async (text: string) => {
         setIsFetchingGPT(true);
         setValidationError(null);
         setSuggestedCategory(null);
         setAiFilled(false);
+        setBatch(null);
+        setEditingBatchIndex(null);
 
         try {
             const result = await aiApi.categorize(text);
+
+            // Several transactions: review them as cards instead of filling the form
+            if (result.transactions && result.transactions.length > 1) {
+                reset(emptyForm());
+                setBatch(result.transactions.map((item) => ({
+                    type: item.transactionTypeExtracted === 'INCOME' ? 'INCOME' : 'EXPENSE',
+                    amount: item.amountExtracted,
+                    description: item.descriptionExtracted,
+                    date: item.dateExtracted || todayIso(),
+                    categoryId: categoryIdFor(item),
+                    suggestedCategory: item.suggestedCategory,
+                    status: 'pending',
+                })));
+                setBatchIndex(0);
+                return;
+            }
 
             if (!result.isValidFinancialTransaction) {
                 const reason = result.rejectionReason || 'Describe un gasto o un ingreso con su monto';
@@ -118,10 +153,7 @@ const NewTransaction = () => {
             }
 
             // The server already matched the name to one of the user's categories
-            const matched = categories.find(
-                (cat) => cat.name.toLowerCase() === result.categoryName.toLowerCase() && cat.type === result.transactionTypeExtracted
-            );
-            setValue('category', matched ? String(matched.id) : '');
+            setValue('category', categoryIdFor(result));
             setAiFilled(true);
             if (result.confidence <= 0.7) {
                 toast('Revisa los datos: la categorización tiene baja confianza.');
@@ -188,10 +220,132 @@ const NewTransaction = () => {
         toast('Selecciona una categoría existente');
     };
 
+    const updateBatchItem = (index: number, changes: Partial<BatchItem>) =>
+        setBatch((items) => items && items.map((item, i) => (i === index ? {...item, ...changes} : item)));
+
+    // Moves to the next card still pending, or wraps up when every card was saved or discarded
+    const advanceBatch = (items: BatchItem[], from: number) => {
+        const pending = items.map((item, i) => (item.status === 'pending' ? i : -1)).filter((i) => i >= 0);
+        if (pending.length) {
+            setBatchIndex(pending.find((i) => i > from) ?? pending[0]);
+            return;
+        }
+        const saved = items.filter((item) => item.status === 'saved').length;
+        setBatch(null);
+        if (saved) {
+            toast.success(`Guardaste ${saved} de ${items.length} transacciones`);
+            navigate('/transactions');
+        } else {
+            toast('Descartaste todas las transacciones');
+        }
+    };
+
+    const saveBatchItem = async (item: BatchItem) => {
+        const category = categories.find((cat) => String(cat.id) === item.categoryId);
+        if (!category) return false;
+        try {
+            await addTransaction({
+                description: item.description.trim(),
+                amount: Number(item.amount),
+                categoryId: category.id,
+                categoryName: category.name,
+                type: item.type,
+                date: item.date,
+            });
+            return true;
+        } catch {
+            // The store already showed the error; the card stays pending to retry
+            return false;
+        }
+    };
+
+    const handleBatchSave = async (index: number) => {
+        if (!batch) return;
+        setIsSavingBatch(true);
+        const ok = await saveBatchItem(batch[index]);
+        setIsSavingBatch(false);
+        if (!ok) return;
+        const items = batch.map((item, i) => (i === index ? {...item, status: 'saved' as const} : item));
+        setBatch(items);
+        advanceBatch(items, index);
+    };
+
+    const handleBatchSaveAll = async () => {
+        if (!batch) return;
+        setIsSavingBatch(true);
+        let items = batch;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].status !== 'pending') continue;
+            if (!(await saveBatchItem(items[i]))) break;
+            items = items.map((item, k) => (k === i ? {...item, status: 'saved' as const} : item));
+        }
+        setIsSavingBatch(false);
+        setBatch(items);
+        advanceBatch(items, batchIndex);
+    };
+
+    const handleBatchDiscard = (index: number) => {
+        if (!batch) return;
+        const items = batch.map((item, i) => (i === index ? {...item, status: 'discarded' as const} : item));
+        setBatch(items);
+        advanceBatch(items, index);
+    };
+
+    // Editing loads the card into the full form; saving the form saves that card and returns to the rest
+    const handleBatchEdit = (index: number) => {
+        if (!batch) return;
+        const item = batch[index];
+        reset({description: item.description, amount: item.amount, category: item.categoryId, type: item.type, date: item.date});
+        setEditingBatchIndex(index);
+    };
+
+    const handleBatchCreateSuggested = async (index: number) => {
+        const item = batch?.[index];
+        if (!item?.suggestedCategory) return;
+        try {
+            const newCategory = await createCategory(item.suggestedCategory, item.type);
+            setBatch((items) => items && items.map((entry) =>
+                // Other cards that suggested the same name get it too
+                entry.status === 'pending' && !entry.categoryId && entry.type === item.type && entry.suggestedCategory === item.suggestedCategory
+                    ? {...entry, categoryId: String(newCategory.id), suggestedCategory: undefined}
+                    : entry
+            ));
+            toast.success(`Categoría "${newCategory.name}" lista`);
+        } catch (createError) {
+            notifyError(createError, 'No se pudo crear la categoría');
+        }
+    };
+
+    const cancelBatchEdit = () => {
+        setEditingBatchIndex(null);
+        reset(emptyForm());
+    };
+
     const onSubmit = async (data: TransactionFormValues) => {
         const category = categories.find((cat) => String(cat.id) === data.category);
         if (!category) {
             toast.error('Selecciona una categoría');
+            return;
+        }
+
+        if (batch && editingBatchIndex !== null) {
+            const edited: BatchItem = {
+                ...batch[editingBatchIndex],
+                description: data.description,
+                amount: Number(data.amount),
+                categoryId: data.category,
+                type: data.type,
+                date: data.date,
+            };
+            setIsSubmitting(true);
+            const ok = await saveBatchItem(edited);
+            setIsSubmitting(false);
+            if (!ok) return;
+            const items = batch.map((item, i) => (i === editingBatchIndex ? {...edited, status: 'saved' as const} : item));
+            setEditingBatchIndex(null);
+            reset(emptyForm());
+            setBatch(items);
+            advanceBatch(items, editingBatchIndex);
             return;
         }
 
@@ -426,7 +580,32 @@ const NewTransaction = () => {
                     )}
                 </div>
             </Card>
+            {batch && editingBatchIndex === null ? (
+                <VoiceBatchReview
+                    items={batch}
+                    index={batchIndex}
+                    categories={categories}
+                    busy={isSavingBatch}
+                    onIndexChange={setBatchIndex}
+                    onCategoryChange={(index, categoryId) => updateBatchItem(index, {categoryId})}
+                    onCreateSuggested={(index) => void handleBatchCreateSuggested(index)}
+                    onSave={(index) => void handleBatchSave(index)}
+                    onEdit={handleBatchEdit}
+                    onDiscard={handleBatchDiscard}
+                    onSaveAll={() => void handleBatchSaveAll()}
+                />
+            ) : (
             <Card>
+                {batch && editingBatchIndex !== null && (
+                    <div className="flex items-center justify-between gap-3 mb-4 rounded-lg bg-primary-50 dark:bg-primary-900/30 px-3 py-2 text-sm">
+                        <p className="font-semibold text-primary-800 dark:text-primary-200">
+                            Editando la transacción {editingBatchIndex + 1} de {batch.length}
+                        </p>
+                        <button type="button" onClick={cancelBatchEdit} className="font-semibold text-primary-700 dark:text-primary-300 hover:underline">
+                            Volver a las tarjetas
+                        </button>
+                    </div>
+                )}
                 <form onSubmit={handleSubmit(onSubmit)}>
                     <fieldset disabled={isFetchingGPT} aria-busy={isFetchingGPT} className={`transition-opacity ${isFetchingGPT ? 'opacity-50' : ''}`}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -593,6 +772,7 @@ const NewTransaction = () => {
                     </fieldset>
                 </form>
             </Card>
+            )}
 
             {/* Diálogo de confirmación para crear nueva categoría */}
             {showCategoryCreationDialog && suggestedCategory && (

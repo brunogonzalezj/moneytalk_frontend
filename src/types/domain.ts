@@ -111,6 +111,8 @@ export interface CategorizeResult {
   categoryName: string;
   suggestedCategory?: string;
   rejectionReason?: string;
+  /** Every valid transaction in the text, when the user dictated several at once */
+  transactions?: CategorizeResult[];
 }
 
 export interface NotificationSettingsData {
