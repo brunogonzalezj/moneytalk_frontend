@@ -117,8 +117,11 @@ const NewTransaction = () => {
                 categories.length ? Promise.resolve(categories) : fetchCategories(true),
             ]);
 
-            // Several transactions: review them as cards instead of filling the form
-            if (result.transactions && result.transactions.length > 1) {
+            // Several transactions, or any on a phone, are reviewed as cards instead of filling the form:
+            // on a small screen the form is below the fold and the result would go unnoticed
+            const found = result.transactions?.length ?? 0;
+            const isPhone = window.matchMedia('(max-width: 767px)').matches;
+            if (result.transactions && (found > 1 || (found === 1 && isPhone))) {
                 reset(emptyForm());
                 setBatch(result.transactions.map((item) => ({
                     type: item.transactionTypeExtracted === 'INCOME' ? 'INCOME' : 'EXPENSE',
@@ -244,10 +247,11 @@ const NewTransaction = () => {
         const saved = items.filter((item) => item.status === 'saved').length;
         setBatch(null);
         if (saved) {
-            toast.success(`Guardaste ${saved} de ${items.length} transacciones`);
+            // A single card already got its "Transacción guardada"
+            if (items.length > 1) toast.success(`Guardaste ${saved} de ${items.length} transacciones`);
             navigate('/transactions');
         } else {
-            toast('Descartaste todas las transacciones');
+            toast(items.length > 1 ? 'Descartaste todas las transacciones' : 'Descartaste la transacción');
         }
     };
 

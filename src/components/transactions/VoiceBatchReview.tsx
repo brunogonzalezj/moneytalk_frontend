@@ -74,17 +74,19 @@ const VoiceBatchReview = ({
       <div className="flex items-center justify-between gap-3 mb-3">
         <p id="batch-title" className="flex items-center gap-2 text-sm font-semibold text-primary-700 dark:text-primary-300">
           <Sparkles size={16} />
-          Encontré {items.length} transacciones
+          {items.length > 1 ? `Encontré ${items.length} transacciones` : 'Encontré esta transacción'}
         </p>
         <div className="flex items-center gap-2">
-          <p className="text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
-            {position + 1} de {pending.length}
-          </p>
+          {items.length > 1 && (
+            <p className="text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
+              {position + 1} de {pending.length}
+            </p>
+          )}
           <button
             type="button"
             onClick={onClose}
             disabled={busy}
-            aria-label="Cerrar y descartar las que faltan"
+            aria-label={items.length > 1 ? 'Cerrar y descartar las que faltan' : 'Cerrar y descartar'}
             className="p-1 rounded-full text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
           >
             <X size={18} />
@@ -98,7 +100,7 @@ const VoiceBatchReview = ({
           onClick={() => previous !== undefined && onIndexChange(previous)}
           disabled={previous === undefined || busy}
           aria-label="Transacción anterior"
-          className="p-1 sm:p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent"
+          className={`${items.length > 1 ? '' : 'hidden '}p-1 sm:p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent`}
         >
           <ChevronLeft size={20} />
         </button>
@@ -182,13 +184,13 @@ const VoiceBatchReview = ({
           onClick={() => next !== undefined && onIndexChange(next)}
           disabled={next === undefined || busy}
           aria-label="Transacción siguiente"
-          className="p-1 sm:p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent"
+          className={`${items.length > 1 ? '' : 'hidden '}p-1 sm:p-2 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent`}
         >
           <ChevronRight size={20} />
         </button>
       </div>
 
-      <div className="flex justify-center gap-1.5 mt-3" aria-hidden="true">
+      <div className={`justify-center gap-1.5 mt-3 ${items.length > 1 ? 'flex' : 'hidden'}`} aria-hidden="true">
         {items.map((entry, i) => (
           <span
             key={i}
